@@ -1,0 +1,153 @@
+/* Reset */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  background: #111;
+  color: #fff;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background: #000;
+  padding: 1.5rem;
+  border-right: 2px solid gold;
+  height: 100vh;
+  position: fixed;
+}
+
+.sidebar h2 {
+  color: gold;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.sidebar nav a {
+  display: block;
+  color: white;
+  text-decoration: none;
+  padding: 0.7rem 1rem;
+  margin: 0.3rem 0;
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+.sidebar nav a:hover,
+.sidebar nav a.active {
+  background: gold;
+  color: black;
+}
+
+/* Contenido */
+.main-content {
+  margin-left: 220px;
+  padding: 2rem;
+  flex: 1;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.logout-btn {
+  background: gold;
+  border: none;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+/* Dashboard */
+.stats {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.stat-card {
+  flex: 1;
+  background: #000;
+  padding: 1.5rem;
+  border: 1px solid gold;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  color: gold;
+  font-size: 2rem;
+}
+
+/* Secciones */
+.section { margin-top: 2rem; }
+.hidden { display: none; }
+
+/* Botones */
+.btn, .btn-add {
+  background: gold;
+  color: black;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn:hover, .btn-add:hover { background: #fff; color: #000; }
+
+.btn.secondary {
+  background: #444;
+  color: #fff;
+}
+
+/* Formularios inline */
+.form-inline {
+  background: #000;
+  border: 1px solid gold;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+.form-inline form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.form-inline label { color: gold; font-weight: bold; }
+.form-inline input,
+.form-inline select {
+  padding: 0.6rem;
+  border: none;
+  border-radius: 5px;
+  background: #222;
+  color: #fff;
+}
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 0.8rem;
+  border: 1px solid #444;
+  text-align: center;
+}
+th {
+  background: #000;
+  color: gold;
+}
+img { width: 50px; border-radius: 5px; }
+.edit, .delete {
+  border: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.edit { background: gold; color: black; }
+.delete { background: red; color: white; }
