@@ -1,3 +1,23 @@
+<?php
+require_once '../php/config.php'; // Conexión y sesión
+
+// Verificar que haya una sesión activa
+if (!isset($_SESSION['rol_usuario'])) {
+    header("Location: index.html");
+    exit;
+}
+
+// Verificar que la sesión pertenezca a un usuario ADMIN
+if ($_SESSION['rol_usuario'] === 'admin') {
+}
+else {
+    header("Location: index.html");
+    exit;
+}
+?>
+
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -25,7 +45,7 @@
   <main class="main-content">
     <header class="admin-header">
       <h1>Panel de Administración</h1>
-      <button class="logout-btn" onclick="window.location.href='logout.php'">Cerrar Sesión</button>
+      <button class="logout-btn" onclick="window.location.href='../php/logout.php'">Cerrar Sesión</button>
 
     </header>
 

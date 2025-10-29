@@ -1,3 +1,26 @@
+
+<?php
+
+require_once '../php/config.php'; // Conexión y sesión
+
+// Verificar que haya una sesión activa
+if (!isset($_SESSION['rol_usuario'])) {
+    header("Location: index.html");
+    exit;
+}
+
+// Verificar que el rol de la sesión sea "user"
+if ($_SESSION['rol_usuario'] === 'user') {
+} 
+else {
+    // ❌ Rol incorrecto → redirigimos al login
+    header("Location: index.html");
+    exit;
+}
+?>
+
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,7 +40,7 @@
       <a href="#" data-section="pedidoForm">Pedidos</a>
       <a href="#" data-section="direccionForm">Direcciones</a>
       <a href="#" data-section="pagoForm">Pago</a>
-      <a href="logout.php" id="logoutLink" onclick="return true;">Cerrar Sesión</a>
+      <a href="../php/logout.php" id="logoutLink" onclick="return true;">Cerrar Sesión</a>
 
     </nav>
   </header>
