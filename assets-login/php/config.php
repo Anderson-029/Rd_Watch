@@ -1,10 +1,4 @@
 <?php
-// ------------------------------------------------------
-// CONFIGURACIÓN DE CONEXIÓN - RD_WATCH
-// ------------------------------------------------------
-// Este archivo se encarga únicamente de establecer la
-// conexión con la base de datos PostgreSQL mediante PDO.
-// ------------------------------------------------------
 
 $host = "localhost";   // Servidor donde corre PostgreSQL
 $port = "5432";        // Puerto por defecto
