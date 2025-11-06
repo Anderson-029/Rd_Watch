@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de Administración | RD WATCH</title>
+
+  <!-- Tipografías y librerías iguales al sitio público -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;600&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <!-- Hoja global del sitio y hoja local del admin -->
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="admin.css"/>
+
+  <!-- Chart.js para el dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Header cohesivo con el sitio -->
+  <header class="header scrolled">
+    <div class="container header-container">
+      <a href="index.html" class="header-logo">
+        <i class="logo-icon fas fa-clock"></i> RD <span style="font-weight:400;color:var(--primary-light)">WATCH</span>
+      </a>
+      <nav class="main-nav">
+        <ul>
+          <li><a href="index.html#services-section" class="nav-link">Servicios</a></li>
+          <li><a href="comercio.html" class="nav-link">Comercio</a></li>
+          <li><a href="index.html#contact-section" class="nav-link">Contacto</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions">
+        <button class="button button-secondary" id="btn-open-admin-menu"><i class="fas fa-sliders"></i> Menú Admin</button>
+      </div>
+      <button class="mobile-menu-btn" aria-label="Menú móvil">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Layout del admin -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="brand">
+      <i class="fas fa-gem"></i>
+      <span>RD WATCH · Admin</span>
+    </div>
+    <nav class="admin-nav">
+      <button class="admin-link active" data-target="dashboard"><i class="fas fa-chart-column"></i> Dashboard</button>
+      <button class="admin-link" data-target="productos"><i class="fas fa-box-open"></i> Productos</button>
+      <button class="admin-link" data-target="pedidos"><i class="fas fa-truck-fast"></i> Pedidos</button>
+      <button class="admin-link" data-target="clientes"><i class="fas fa-user-group"></i> Clientes</button>
+      <button class="admin-link" data-target="servicios"><i class="fas fa-screwdriver-wrench"></i> Servicios</button>
+      <button class="admin-link" data-target="configuracion"><i class="fas fa-gear"></i> Configuración</button>
+    </nav>
+    <div class="admin-footer">
+      <button class="button button-outline" id="btn-logout"><i class="fas fa-right-from-bracket"></i> Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="admin-main container">
+    <!-- Dashboard -->
+    <section id="dashboard" class="admin-section is-active">
+      <div class="section-header">
+        <h2 class="section-heading">Estadísticas</h2>
+        <p class="section-subheading">Resumen general de la tienda</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <p class="stat-label">Productos</p>
+          <p class="stat-number" id="statProductos">0</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Pedidos</p>
+          <p class="stat-number" id="statPedidos">0</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Clientes</p>
+          <p class="stat-number" id="statClientes">0</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Servicios</p>
+          <p class="stat-number" id="statServicios">0</p>
+        </div>
+      </div>
+
+      <div class="card-chart">
+        <h3 class="card-title"><i class="fas fa-signal"></i> Estados de pedidos</h3>
+        <canvas id="estadosChart" height="120"></canvas>
+      </div>
+    </section>
+
+    <!-- Productos -->
+    <section id="productos" class="admin-section">
+      <div class="section-header">
+        <h2 class="section-heading">Gestión de Productos</h2>
+        <p class="section-subheading">Crea, edita o desactiva productos</p>
+      </div>
+
+      <div class="toolbar">
+        <button class="button button-primary" id="btnNuevoProducto"><i class="fas fa-plus"></i> Nuevo</button>
+        <div class="toolbar-right">
+          <input class="input" id="buscarProducto" placeholder="Buscar producto..." />
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Imagen</th>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyProductos"></tbody>
+        </table>
+      </div>
+
+      <!-- Modal producto -->
+      <div class="modal" id="modalProducto">
+        <div class="modal-content">
+          <span class="close-modal" data-close="#modalProducto">&times;</span>
+          <h3 class="modal-title" id="tituloModalProducto">Nuevo Producto</h3>
+          <form id="formProducto" class="form-grid">
+            <label>Nombre<input type="text" id="pNombre" required></label>
+            <label>Precio<input type="number" step="0.01" id="pPrecio" required></label>
+            <label>Imagen (URL)<input type="url" id="pImagen" required></label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Guardar</button>
+              <button class="button button-outline" type="button" data-close="#modalProducto">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pedidos -->
+    <section id="pedidos" class="admin-section">
+      <div class="section-header">
+        <h2 class="section-heading">Gestión de Pedidos</h2>
+        <p class="section-subheading">Control y estados</p>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr><th>ID</th><th>Cliente</th><th>Estado</th><th>Total</th></tr>
+          </thead>
+          <tbody id="tbodyPedidos"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Clientes -->
+    <section id="clientes" class="admin-section">
+      <div class="section-header">
+        <h2 class="section-heading">Gestión de Clientes</h2>
+        <p class="section-subheading">Listado y contacto</p>
+      </div>
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr><th>Nombre</th><th>Email</th><th>Teléfono</th></tr>
+          </thead>
+          <tbody id="tbodyClientes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Servicios (NUEVO CRUD) -->
+    <section id="servicios" class="admin-section">
+      <div class="section-header">
+        <h2 class="section-heading">Servicios</h2>
+        <p class="section-subheading">Administra los servicios que ofreces (reparación, mantenimiento, repuestos, etc.)</p>
+      </div>
+
+      <div class="toolbar">
+        <button class="button button-primary" id="btnNuevoServicio"><i class="fas fa-plus"></i> Nuevo servicio</button>
+        <div class="toolbar-right">
+          <input class="input" id="buscarServicio" placeholder="Buscar servicio..." />
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Duración</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+          </thead>
+          <tbody id="tbodyServicios"></tbody>
+        </table>
+      </div>
+
+      <!-- Modal servicio -->
+      <div class="modal" id="modalServicio">
+        <div class="modal-content">
+          <span class="close-modal" data-close="#modalServicio">&times;</span>
+          <h3 class="modal-title" id="tituloModalServicio">Nuevo Servicio</h3>
+
+          <form id="formServicio" class="form-grid">
+            <div class="grid-2">
+              <label>ID Servicio<input type="number" id="sId" min="1" required></label>
+              <label>Nombre<input type="text" id="sNombre" required></label>
+            </div>
+            <label>Descripción<textarea id="sDescripcion" rows="3" required></textarea></label>
+            <div class="grid-3">
+              <label>Precio<input type="number" step="0.01" id="sPrecio" required></label>
+              <label>Duración Estimada (min)<input type="number" id="sDuracion" min="1" required></label>
+              <label>Estado
+                <select id="sEstado">
+                  <option value="true" selected>Activo</option>
+                  <option value="false">Inactivo</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button class="button button-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
+              <button class="button button-outline" type="button" data-close="#modalServicio">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Configuración -->
+    <section id="configuracion" class="admin-section">
+      <div class="section-header">
+        <h2 class="section-heading">Configuración</h2>
+        <p class="section-subheading">Preferencias de tienda y cuenta</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title"><i class="fas fa-store"></i> Tienda</h3>
+          <form id="formConfigTienda" class="form-grid">
+            <label>Nombre<input id="tiendaNombre" value="RD-Watch"></label>
+            <label>Moneda
+              <select id="tiendaMoneda">
+                <option value="USD" selected>USD</option>
+                <option value="EUR">EUR</option>
+                <option value="COP">COP</option>
+              </select>
+            </label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Guardar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title"><i class="fas fa-user-shield"></i> Cuenta admin</h3>
+          <form id="formConfigAdmin" class="form-grid">
+            <label>Usuario<input id="adminUsuario" value="admin"></label>
+            <label>Nueva contraseña<input type="password" id="adminPass"></label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Actualizar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Overlay para modales -->
+  <div class="modal-overlay" id="modalOverlay"></div>
+
+  <!-- JS del sitio (scroll/header, etc.) + JS del admin -->
+  <script src="script.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
