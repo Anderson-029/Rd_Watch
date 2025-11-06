@@ -60,9 +60,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.addEventListener('scroll', function() {
         if (window.scrollY > 300) {
-            backToTopBtn.classList.add('visible');
+            // Usar 'show' para consistencia con el CSS
+            backToTopBtn.classList.add('show');
         } else {
-            backToTopBtn.classList.remove('visible');
+            // Usar 'show' para consistencia con el CSS
+            backToTopBtn.classList.remove('show');
         }
     });
     
@@ -746,4 +748,397 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification(`Redirigiendo a inicio de sesión con ${platform}...`);
         });
     });
+
+    // --- Lógica del Banner de Política de Cookies ---
+    const cookieBanner = document.querySelector('.cookie-banner');
+    const acceptCookiesBtn = document.getElementById('accept-cookies');
+    const COOKIE_STORAGE_KEY = 'cookiesAccepted';
+
+    function checkCookieConsent() {
+        // Verificar si la clave de aceptación existe en localStorage
+        if (!localStorage.getItem(COOKIE_STORAGE_KEY)) {
+            // Si no existe, mostrar el banner
+            cookieBanner.classList.add('show');
+        } else {
+            // Si existe, asegurarse de que esté oculto
+            cookieBanner.classList.remove('show');
+        }
+    }
+
+    function acceptCookies() {
+        // Establecer la clave en localStorage para recordar la preferencia del usuario
+        localStorage.setItem(COOKIE_STORAGE_KEY, 'true');
+        
+        // Ocultar el banner
+        cookieBanner.classList.remove('show');
+
+        // Opcional: Mostrar una notificación de confirmación
+        // showNotification('Preferencias de cookies guardadas.');
+    }
+
+    // Inicializar la verificación del consentimiento de cookies
+    checkCookieConsent();
+
+    // Event listener para el botón de aceptar
+    if (acceptCookiesBtn) {
+        acceptCookiesBtn.addEventListener('click', acceptCookies);
+    }
+    // --- Fin Lógica del Banner de Política de Cookies ---
+});
+
+// --- LÓGICA DE COMERCIO, CARRITO Y CHECKOUT ---
+
+// Datos Simulados de Productos (Basado en tab_Productos)
+const productsData = [
+    { id: 1, name: "Rolex Submariner", price: 8500.00, stock: 5, category: "Relojes", brand: "Rolex", img: 'https://via.placeholder.com/280x250/B8860B/FFFFFF?text=Rolex+Submariner', badge: 'Lujo' },
+    { id: 2, name: "Correa Cuero Clásico 20mm", price: 55.00, stock: 20, category: "Accesorios", brand: "Citizen", img: 'https://via.placeholder.com/280x250/556b2f/FFFFFF?text=Correa+20mm', badge: 'Nuevo' },
+    { id: 3, name: "Omega Speedmaster Moonwatch", price: 6200.00, stock: 2, category: "Relojes", brand: "Omega", img: 'https://via.placeholder.com/280x250/1a1a1a/D4AF37?text=Omega+Speedmaster', badge: 'Vendido' },
+    { id: 4, name: "Kit de Herramientas Básico", price: 120.00, stock: 15, category: "Repuestos", brand: "Otro", img: 'https://via.placeholder.com/280x250/333/FFFFFF?text=Kit+Herramientas', badge: '' },
+    { id: 5, name: "Engranaje Calibre 1570", price: 250.00, stock: 10, category: "Repuestos", brand: "Rolex", img: 'https://via.placeholder.com/280x250/996515/FFFFFF?text=Engranaje+1570', badge: 'Escaso' },
+    { id: 6, name: "Citizen Eco-Drive Elegance", price: 350.00, stock: 12, category: "Relojes", brand: "Citizen", img: 'https://via.placeholder.com/280x250/666/FFFFFF?text=Citizen+Eco', badge: '' },
+];
+
+let cart = JSON.parse(localStorage.getItem('rdwatch_cart')) || [];
+const SHIPPING_COST = 15.00; // Costo de envío fijo
+
+// --- UTILIDADES ---
+
+/**
+ * Función para formatear precios.
+ * @param {number} amount
+ * @returns {string} Precio formateado.
+ */
+function formatPrice(amount) {
+    return amount.toLocaleString('es-CO', {
+        style: 'currency',
+        currency: 'USD' // Usamos USD como ejemplo. Cambiar a COP si es necesario.
+    });
+}
+
+// --- LÓGICA DE PRODUCTOS ---
+
+/**
+ * Carga y renderiza los productos en la cuadrícula.
+ * @param {Array} products Lista de productos a renderizar.
+ */
+function renderProducts(products) {
+    const productList = document.getElementById('product-list');
+    if (!productList) return;
+
+    productList.innerHTML = products.map(product => `
+        <div class="product-card" data-category="${product.category}" data-brand="${product.brand}" data-price="${product.price}">
+            <div class="product-image-container">
+                <img src="${product.img}" alt="${product.name}" class="product-image">
+                ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
+            </div>
+            <div class="product-details">
+                <p class="product-category">${product.category} - ${product.brand}</p>
+                <h3 class="product-name">${product.name}</h3>
+                <p class="product-price">${formatPrice(product.price)}</p>
+                <div class="product-actions">
+                    <button class="button button-primary" onclick="addToCart(${product.id}, 1)">
+                        <i class="fas fa-cart-plus"></i> Añadir
+                    </button>
+                    <a href="#" class="button button-outline"><i class="fas fa-search"></i> Ver</a>
+                </div>
+                <p style="font-size:0.8rem; color:var(--text-light); margin-top:10px;">Stock: ${product.stock > 0 ? product.stock : 'Agotado'}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Lógica de filtrado (simulada)
+function applyFilters() {
+    const activeCategory = document.querySelector('#category-filters .active').getAttribute('data-filter');
+    const selectedBrand = document.getElementById('brand-filter').value;
+    const maxPrice = parseFloat(document.getElementById('price-range').value);
+    const sortOrder = document.getElementById('sort-order').value;
+    
+    let filtered = productsData.filter(product => {
+        const categoryMatch = activeCategory === 'all' || product.category === activeCategory;
+        const brandMatch = selectedBrand === 'all' || product.brand === selectedBrand;
+        const priceMatch = product.price <= maxPrice;
+        return categoryMatch && brandMatch && priceMatch;
+    });
+    
+    // Simular ordenamiento
+    filtered.sort((a, b) => {
+        if (sortOrder === 'price-asc') return a.price - b.price;
+        if (sortOrder === 'price-desc') return b.price - a.price;
+        if (sortOrder === 'name-asc') return a.name.localeCompare(b.name);
+        return 0;
+    });
+
+    renderProducts(filtered);
+    // Simular contador de productos
+    document.querySelector('.sort-bar p').textContent = `Mostrando ${filtered.length} de ${productsData.length} productos`;
+
+    showNotification(`Filtros aplicados. Resultados: ${filtered.length}`, false);
+}
+
+// Event Listeners para filtros
+document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar la lista de productos
+    if (document.getElementById('product-list')) {
+        renderProducts(productsData);
+
+        // Lógica de rango de precio
+        const priceRange = document.getElementById('price-range');
+        const priceValue = document.getElementById('price-value');
+        if (priceRange) {
+            priceRange.addEventListener('input', () => {
+                priceValue.textContent = priceRange.value;
+            });
+            priceRange.addEventListener('change', applyFilters); // Aplicar al soltar
+        }
+
+        // Lógica de categorías
+        document.querySelectorAll('#category-filters a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('#category-filters a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                applyFilters();
+            });
+        });
+        
+        // Lógica de ordenamiento y marcas
+        document.getElementById('brand-filter')?.addEventListener('change', applyFilters);
+        document.getElementById('sort-order')?.addEventListener('change', applyFilters);
+
+        updateCartDisplay(); // Cargar el carrito al iniciar
+    }
+});
+
+
+// --- LÓGICA DEL CARRITO ---
+
+/**
+ * Añade un producto al carrito.
+ * @param {number} productId ID del producto.
+ * @param {number} quantity Cantidad a añadir.
+ */
+function addToCart(productId, quantity) {
+    const product = productsData.find(p => p.id === productId);
+    if (!product || product.stock < quantity) {
+        showNotification('Stock insuficiente o producto no encontrado.', true);
+        return;
+    }
+
+    const cartItem = cart.find(item => item.id === productId);
+
+    if (cartItem) {
+        // Validación de stock antes de actualizar
+        if (cartItem.quantity + quantity > product.stock) {
+            showNotification(`Solo quedan ${product.stock} unidades en stock.`, true);
+            return;
+        }
+        cartItem.quantity += quantity;
+    } else {
+        cart.push({
+            id: productId,
+            name: product.name,
+            price: product.price,
+            img: product.img,
+            quantity: quantity,
+            stock: product.stock // Almacenar stock máximo
+        });
+    }
+
+    // Guarda y actualiza la vista
+    saveCart();
+    updateCartDisplay();
+    showNotification(`"${product.name}" añadido al carrito.`, false);
+}
+
+/**
+ * Elimina completamente un ítem del carrito.
+ * @param {number} productId ID del producto a eliminar.
+ */
+function removeFromCart(productId) {
+    cart = cart.filter(item => item.id !== productId);
+    saveCart();
+    updateCartDisplay();
+    showNotification('Producto eliminado del carrito.', false);
+}
+
+/**
+ * Actualiza la cantidad de un ítem en el carrito.
+ * @param {number} productId ID del producto.
+ * @param {number} newQuantity Nueva cantidad.
+ */
+function updateCartItemQuantity(productId, newQuantity) {
+    const cartItem = cart.find(item => item.id === productId);
+    const product = productsData.find(p => p.id === productId);
+
+    if (cartItem && product) {
+        newQuantity = parseInt(newQuantity);
+        if (newQuantity < 1) newQuantity = 1;
+        if (newQuantity > product.stock) newQuantity = product.stock;
+
+        cartItem.quantity = newQuantity;
+        saveCart();
+        updateCartDisplay();
+    }
+}
+
+/**
+ * Guarda el carrito en localStorage.
+ */
+function saveCart() {
+    localStorage.setItem('rdwatch_cart', JSON.stringify(cart));
+}
+
+/**
+ * Abre o cierra la barra lateral del carrito.
+ */
+function toggleCart() {
+    const sidebar = document.getElementById('cart-sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : 'auto';
+    }
+}
+
+/**
+ * Renderiza el contenido del carrito (ítems, totales y contadores).
+ */
+function updateCartDisplay() {
+    const list = document.getElementById('cart-items-list');
+    const countSpan = document.getElementById('cart-item-count');
+    const subtotalSpan = document.getElementById('cart-subtotal');
+    const totalSpan = document.getElementById('cart-total');
+    const checkoutBtn = document.getElementById('btn-procede-checkout');
+    
+    if (!list || !countSpan) return;
+
+    let subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    let totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+    // Renderizar lista de ítems
+    if (cart.length === 0) {
+        list.innerHTML = '<p class="empty-cart-message">El carrito está vacío.</p>';
+        checkoutBtn.disabled = true;
+    } else {
+        list.innerHTML = cart.map(item => `
+            <div class="cart-item">
+                <img src="${item.img}" alt="${item.name}" class="cart-item-img">
+                <div class="cart-item-details">
+                    <h4>${item.name}</h4>
+                    <p class="cart-item-price">${formatPrice(item.price)} x ${item.quantity}</p>
+                    <div class="cart-item-actions">
+                        <div class="quantity-controls">
+                            <button onclick="updateCartItemQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                            <input type="number" value="${item.quantity}" min="1" max="${item.stock}" 
+                                onchange="updateCartItemQuantity(${item.id}, this.value)">
+                            <button onclick="updateCartItemQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                        </div>
+                        <button class="remove-item-btn" onclick="removeFromCart(${item.id})"><i class="fas fa-trash"></i> Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        checkoutBtn.disabled = false;
+    }
+
+    // Actualizar resumen y contador
+    countSpan.textContent = totalItems;
+    subtotalSpan.textContent = formatPrice(subtotal);
+    totalSpan.textContent = formatPrice(subtotal + SHIPPING_COST);
+}
+
+
+// --- LÓGICA DE CHECKOUT Y PAGO (SIMULACIÓN) ---
+
+/**
+ * Oculta el carrito y muestra la sección de checkout.
+ */
+function procedeToCheckout() {
+    if (cart.length === 0) {
+        showNotification('Tu carrito está vacío.', true);
+        return;
+    }
+
+    toggleCart(); // Cierra el carrito
+    document.querySelector('.shop-section').classList.add('hidden-section');
+    document.getElementById('checkout-section').classList.remove('hidden-section');
+    document.getElementById('floating-cart-btn').style.display = 'none';
+    
+    updateCheckoutSummary(); // Actualiza el resumen final
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Subir al inicio de la página
+
+}
+
+/**
+ * Vuelve de la pasarela de pago al carrito (cierra checkout y abre el carrito).
+ */
+function backToCart() {
+    document.getElementById('checkout-section').classList.add('hidden-section');
+    document.querySelector('.shop-section').classList.remove('hidden-section');
+    document.getElementById('floating-cart-btn').style.display = 'flex';
+    toggleCart(); // Abre el carrito
+}
+
+/**
+ * Actualiza el resumen de la orden en la página de Checkout.
+ */
+function updateCheckoutSummary() {
+    const summaryList = document.getElementById('checkout-order-summary');
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalConEnvio = subtotal + SHIPPING_COST;
+
+    // Actualizar lista de ítems
+    summaryList.innerHTML = cart.map(item => `
+        <div class="cart-item">
+            <img src="${item.img}" alt="${item.name}" class="cart-item-img">
+            <div class="cart-item-details">
+                <h4>${item.name}</h4>
+                <p class="cart-item-price">${formatPrice(item.price)} x ${item.quantity}</p>
+            </div>
+        </div>
+    `).join('');
+
+    // Actualizar totales
+    document.getElementById('checkout-subtotal').textContent = formatPrice(subtotal);
+    document.getElementById('checkout-shipping').textContent = formatPrice(SHIPPING_COST);
+    document.getElementById('checkout-final-total').textContent = formatPrice(totalConEnvio);
+    document.getElementById('payment-amount').textContent = formatPrice(totalConEnvio);
+}
+
+/**
+ * Simulación de procesamiento de pago.
+ */
+document.getElementById('payment-form')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Simulación del botón de carga
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoader = submitBtn.querySelector('.btn-loader');
+    
+    btnText.style.opacity = '0';
+    btnLoader.style.display = 'flex';
+    submitBtn.disabled = true;
+
+    // Simular llamada a pasarela de pago y backend
+    setTimeout(() => {
+        btnText.style.opacity = '1';
+        btnLoader.style.display = 'none';
+        submitBtn.disabled = false;
+        
+        // Simular éxito
+        const totalPagado = document.getElementById('checkout-final-total').textContent;
+        showNotification(`✅ Pago de ${totalPagado} procesado con éxito. ¡Tu orden ha sido confirmada!`);
+        
+        // Limpiar carrito y resetear vista
+        cart = [];
+        saveCart();
+        updateCartDisplay();
+
+        // Ocultar checkout y mostrar tienda
+        document.getElementById('checkout-section').classList.add('hidden-section');
+        document.querySelector('.shop-section').classList.remove('hidden-section');
+        document.getElementById('floating-cart-btn').style.display = 'flex';
+
+    }, 3000);
 });
