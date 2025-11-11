@@ -29,32 +29,50 @@ DROP TABLE IF EXISTS tab_Categorias;
 DROP TABLE IF EXISTS tab_Usuarios;
 
 
+-- =====================================================
 -- Tabla: tab_Usuarios
 -- Almacena la información de los usuarios del sistema.
+-- =====================================================
+
 CREATE TABLE IF NOT EXISTS tab_Usuarios
 (
-    id_usuario              BIGINT NOT NULL, -- Identificador único del usuario
-    nom_usuario             VARCHAR(100) NOT NULL, -- Nombre completo del usuario
-    correo_usuario          VARCHAR(100) NOT NULL, -- Correo electrónico del usuario
-    num_telefono_usuario    BIGINT NOT NULL, -- Número de teléfono del usuario
-    direccion_principal     VARCHAR(255), -- Dirección principal del usuario (opcional, para referencia rápida)
+    id_usuario              BIGINT NOT NULL,              -- Identificador único del usuario
+    nom_usuario             VARCHAR(100) NOT NULL,        -- Nombre completo del usuario
+    correo_usuario          VARCHAR(100) NOT NULL,        -- Correo electrónico del usuario
+    num_telefono_usuario    BIGINT NOT NULL,              -- Número de teléfono del usuario
+    direccion_principal     VARCHAR(255),                 -- Dirección principal del usuario (opcional, para referencia rápida)
     fecha_registro          TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora en que el usuario se registró
-	activo                      BOOLEAN DEFAULT TRUE, -- Indica si el usuario está activo o inactivo
-    
+    activo                  BOOLEAN DEFAULT TRUE,         -- Indica si el usuario está activo o inactivo
+    contra                  VARCHAR(50) NOT NULL,         -- Contraseña del usuario (hash)
+    salt                    VARCHAR(100),                 -- Semilla única para generar el hash de la contraseña
+    intentos_fallidos       SMALLINT DEFAULT 0,           -- Cantidad de intentos fallidos de login
+    bloqueado               BOOLEAN DEFAULT FALSE,        -- Indica si el usuario está bloqueado
+    fecha_bloqueo           TIMESTAMP,                    -- Fecha y hora en que se bloqueó la cuenta
+    ultimo_acceso           TIMESTAMP,                    -- Último acceso exitoso del usuario
+    token_recuperacion      TEXT,                         -- Token para recuperación de contraseña
+    token_expiracion        TIMESTAMP,                    -- Fecha de expiración del token de recuperación
 
     -- Columnas de auditoría
-    usr_insert VARCHAR(100),
-    fec_insert TIMESTAMP,
-    usr_update VARCHAR(100),
-    fec_update TIMESTAMP,
-    usr_delete VARCHAR(100),
-    fec_delete TIMESTAMP,
-
+    usr_insert              VARCHAR(100),
+    fec_insert              TIMESTAMP,
+    usr_update              VARCHAR(100),
+    fec_update              TIMESTAMP,
+    usr_delete              VARCHAR(100),
+    fec_delete              TIMESTAMP,
     PRIMARY KEY (id_usuario),
     UNIQUE (correo_usuario)
-
 );
-CREATE INDEX idx_usuario_correo ON tab_Usuarios (id_usuario); -- Índice para acelerar búsquedas de usuarios por id
+
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_usuarios_correo ON tab_Usuarios (correo_usuario);
+CREATE INDEX IF NOT EXISTS idx_usuarios_correo_lower ON tab_Usuarios (LOWER(correo_usuario));
+CREATE INDEX IF NOT EXISTS idx_usuarios_activo ON tab_Usuarios (activo);
+CREATE INDEX IF NOT EXISTS idx_usuarios_bloqueado ON tab_Usuarios (bloqueado);
+CREATE INDEX IF NOT EXISTS idx_usuarios_ultimo_acceso ON tab_Usuarios (ultimo_acceso);
+CREATE INDEX IF NOT EXISTS idx_usuarios_token_recuperacion ON tab_Usuarios (token_recuperacion);
+CREATE INDEX IF NOT EXISTS idx_usuarios_token_expiracion ON tab_Usuarios (token_expiracion);
+CREATE INDEX IF NOT EXISTS idx_usuarios_fecha_registro ON tab_Usuarios (fecha_registro);
+
 
 -- Tabla: tab_Categorias
 -- Almacena las categorías de los productos (ej. "Relojes de Pulsera", "Relojes de Bolsillo").
