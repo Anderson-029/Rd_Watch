@@ -184,7 +184,6 @@ LANGUAGE PLPGSQL;
 -- CRUD TABLA: tab_Marcas (CORREGIDO)
 -- ==========================================
 
--- INSERT - Insertar marca
 CREATE OR REPLACE FUNCTION fun_insert_marcas(
     wid_marca tab_Marcas.id_marca%TYPE,
     wnom_marca tab_Marcas.nom_marca%TYPE
@@ -200,6 +199,7 @@ $BODY$
             RETURN 'ERROR: Marca ya existe con ese ID o nombre';
         ELSE
             BEGIN
+        
                 INSERT INTO tab_Marcas (id_marca, nom_marca, estado_marca)
                 VALUES (wid_marca, wnom_marca, TRUE);
                 
@@ -213,7 +213,6 @@ $BODY$
 $BODY$
 LANGUAGE PLPGSQL;
 
--- UPDATE - Actualizar marca
 CREATE OR REPLACE FUNCTION fun_update_marcas(
     wid_marca tab_Marcas.id_marca%TYPE,
     wnom_marca tab_Marcas.nom_marca%TYPE,
@@ -223,7 +222,6 @@ $BODY$
     DECLARE
         wnombre_existente tab_Marcas.id_marca%TYPE;
     BEGIN
-        -- Verificar si el nuevo nombre ya existe en otra marca
         SELECT id_marca INTO wnombre_existente FROM tab_Marcas
         WHERE nom_marca = wnom_marca AND id_marca != wid_marca;
         
@@ -231,7 +229,6 @@ $BODY$
             RETURN 'ERROR: Ya existe otra marca con ese nombre';
         END IF;
         
-        -- Realizar la actualización
         UPDATE tab_Marcas SET 
             nom_marca = wnom_marca,
             estado_marca = westado_marca
@@ -249,13 +246,14 @@ $BODY$
 $BODY$
 LANGUAGE PLPGSQL;
 
--- DELETE - Eliminar marca (soft delete)
 CREATE OR REPLACE FUNCTION fun_delete_marcas(
     wid_marca tab_Marcas.id_marca%TYPE
 ) RETURNS TEXT AS
 $BODY$
     BEGIN
-        UPDATE tab_Marcas SET estado_marca = FALSE WHERE id_marca = wid_marca;
+        UPDATE tab_Marcas SET estado_marca = FALSE 
+        WHERE id_marca = wid_marca;
+        
         IF FOUND THEN
             RETURN 'SUCCESS: Marca desactivada correctamente';
         ELSE

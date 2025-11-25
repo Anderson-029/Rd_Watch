@@ -1,5 +1,5 @@
 <?php
-// backend/api/marcas.php
+// backend/api/marcas.php (CORREGIDO)
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -42,6 +42,7 @@ try {
                 exit;
             }
             
+            // ✅ CORRECCIÓN: Llamar correctamente a la función con parámetros nombrados
             $stmt = $pdo->prepare("SELECT fun_insert_marcas(:id, :nombre)");
             $stmt->execute([
                 ':id' => intval($data['id_marca']),
@@ -69,13 +70,16 @@ try {
                 exit;
             }
             
-            $estado = isset($data['estado_marca']) ? ($data['estado_marca'] === 'true' || $data['estado_marca'] === true) : true;
+            // ✅ Convertir estado_marca correctamente
+            $estado = isset($data['estado_marca']) ? 
+                      (($data['estado_marca'] === true || $data['estado_marca'] === 1 || $data['estado_marca'] === '1') ? 'true' : 'false') 
+                      : 'true';
             
-            $stmt = $pdo->prepare("SELECT fun_update_marcas(:id, :nombre, :estado)");
+            $stmt = $pdo->prepare("SELECT fun_update_marcas(:id, :nombre, :estado::boolean)");
             $stmt->execute([
                 ':id' => intval($data['id_marca']),
                 ':nombre' => trim($data['nom_marca']),
-                ':estado' => $estado ? 'true' : 'false'
+                ':estado' => $estado
             ]);
             
             $response = $stmt->fetchColumn();
@@ -118,7 +122,11 @@ try {
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'msg' => 'Error de BD: ' . $e->getMessage()]);
+    echo json_encode([
+        'ok' => false, 
+        'msg' => 'Error de BD: ' . $e->getMessage(),
+        'code' => $e->getCode()
+    ]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);

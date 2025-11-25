@@ -1,3 +1,4 @@
+<!-- /admin/admin.html (PEGA COMPLETO) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,19 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Panel de Administración | RD WATCH</title>
 
-  <!-- Tipografías y librerías iguales al sitio público -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;600&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
-  <!-- Hoja global del sitio y hoja local del admin -->
   <link rel="stylesheet" href="../frontend/public/css/style.css"/>
   <link rel="stylesheet" href="admin.css"/>
 
-  <!-- Chart.js para el dashboard -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <!-- Header cohesivo con el sitio -->
   <header class="header scrolled">
     <div class="container header-container">
       <a href="../frontend/public/index.html" class="header-logo">
@@ -39,7 +36,6 @@
     </div>
   </header>
 
-  <!-- Layout del admin -->
   <aside class="admin-sidebar" id="adminSidebar">
     <div class="brand">
       <i class="fas fa-gem"></i>
@@ -90,114 +86,6 @@
       <div class="card-chart">
         <h3 class="card-title"><i class="fas fa-signal"></i> Estados de pedidos</h3>
         <canvas id="estadosChart" height="120"></canvas>
-      </div>
-    </section>
-
-    <!-- Marcas -->
-    <section id="marcas" class="admin-section">
-      <div class="section-header">
-        <h2 class="section-heading">Gestión de Marcas</h2>
-        <p class="section-subheading">Administra las marcas de productos</p>
-      </div>
-
-      <div class="toolbar">
-        <button class="button button-primary" id="btnNuevaMarca"><i class="fas fa-plus"></i> Nueva Marca</button>
-        <div class="toolbar-right">
-          <input class="input" id="buscarMarca" placeholder="Buscar marca..." />
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyMarcas"></tbody>
-        </table>
-      </div>
-
-      <!-- Modal marca -->
-      <div class="modal" id="modalMarca">
-        <div class="modal-content">
-          <span class="close-modal" data-close="#modalMarca">&times;</span>
-          <h3 class="modal-title" id="tituloModalMarca">Nueva Marca</h3>
-          <form id="formMarca" class="form-grid">
-            <div class="grid-2">
-              <label>ID Marca<input type="number" id="mId" required></label>
-              <label>Nombre<input type="text" id="mNombre" required></label>
-            </div>
-            <label>Estado
-              <select id="mEstado">
-                <option value="1">Activo</option>
-                <option value="0">Inactivo</option>
-              </select>
-            </label>
-            <div class="form-actions">
-              <button class="button button-primary" type="submit">Guardar</button>
-              <button class="button button-outline" type="button" data-close="#modalMarca">Cancelar</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- Categorías -->
-    <section id="categorias" class="admin-section">
-      <div class="section-header">
-        <h2 class="section-heading">Gestión de Categorías</h2>
-        <p class="section-subheading">Administra las categorías y subcategorías</p>
-      </div>
-
-      <div class="toolbar">
-        <button class="button button-primary" id="btnNuevaCategoria"><i class="fas fa-plus"></i> Nueva Categoría</button>
-        <div class="toolbar-right">
-          <input class="input" id="buscarCategoria" placeholder="Buscar categoría..." />
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Descripción</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyCategorias"></tbody>
-        </table>
-      </div>
-
-      <!-- Modal categoría -->
-      <div class="modal" id="modalCategoria">
-        <div class="modal-content">
-          <span class="close-modal" data-close="#modalCategoria">&times;</span>
-          <h3 class="modal-title" id="tituloModalCategoria">Nueva Categoría</h3>
-          <form id="formCategoria" class="form-grid">
-            <div class="grid-2">
-              <label>ID Categoría<input type="number" id="cId" required></label>
-              <label>Nombre<input type="text" id="cNombre" required></label>
-            </div>
-            <label>Descripción<textarea id="cDescripcion" rows="2" required></textarea></label>
-            <label>Estado
-              <select id="cEstado">
-                <option value="1">Activo</option>
-                <option value="0">Inactivo</option>
-              </select>
-            </label>
-            <div class="form-actions">
-              <button class="button button-primary" type="submit">Guardar</button>
-              <button class="button button-outline" type="button" data-close="#modalCategoria">Cancelar</button>
-            </div>
-          </form>
-        </div>
       </div>
     </section>
 
@@ -273,6 +161,165 @@
       </div>
     </section>
 
+    <!-- Marcas -->
+    <section id="marcas" class="admin-section">
+      <div class="section-header">
+        <h2 class="section-heading">Marcas</h2>
+        <p class="section-subheading">Administra las marcas disponibles</p>
+      </div>
+
+      <div class="toolbar">
+        <button class="button button-primary" id="btnNuevaMarca"><i class="fas fa-plus"></i> Nueva marca</button>
+        <div class="toolbar-right">
+          <input class="input" id="buscarMarca" placeholder="Buscar marca..." />
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+          </thead>
+          <tbody id="tbodyMarcas"></tbody>
+        </table>
+      </div>
+
+      <!-- Modal marca -->
+      <div class="modal" id="modalMarca">
+        <div class="modal-content">
+          <span class="close-modal" data-close="#modalMarca">&times;</span>
+          <h3 class="modal-title" id="tituloModalMarca">Nueva Marca</h3>
+          <form id="formMarca" class="form-grid">
+            <div class="grid-2">
+              <label>ID Marca<input type="number" id="mId" min="1" required></label>
+              <label>Nombre<input type="text" id="mNombre" required></label>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="mActiva" checked> Activa
+            </label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
+              <button class="button button-outline" type="button" data-close="#modalMarca">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Categorías & Subcategorías -->
+    <section id="categorias" class="admin-section">
+      <div class="section-header">
+        <h2 class="section-heading">Categorías</h2>
+        <p class="section-subheading">Administra categorías y subcategorías de productos</p>
+      </div>
+
+      <div class="grid-2">
+        <!-- Categorías -->
+        <div class="card">
+          <h3 class="card-title"><i class="fas fa-layer-group"></i> Categorías</h3>
+          <div class="toolbar">
+            <button class="button button-primary" id="btnNuevaCategoria"><i class="fas fa-plus"></i> Nueva categoría</button>
+            <div class="toolbar-right">
+              <input class="input" id="buscarCategoria" placeholder="Buscar categoría..." />
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Estado</th> <!-- NUEVO -->
+                <th>Acciones</th>
+              </tr>
+              </thead>
+              <tbody id="tbodyCategorias"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Subcategorías -->
+        <div class="card">
+          <h3 class="card-title"><i class="fas fa-list-ul"></i> Subcategorías</h3>
+          <div class="toolbar">
+            <button class="button button-primary" id="btnNuevaSubcategoria"><i class="fas fa-plus"></i> Nueva subcategoría</button>
+            <div class="toolbar-right" style="gap:8px">
+              <select class="input" id="filtroCatSub">
+                <option value="">Todas las categorías</option>
+              </select>
+              <input class="input" id="buscarSubcategoria" placeholder="Buscar subcategoría..." />
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+              <tr>
+                <th>ID</th>
+                <th>Categoría</th>
+                <th>Nombre</th>
+                <th>Acciones</th>
+              </tr>
+              </thead>
+              <tbody id="tbodySubcategorias"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal categoría -->
+      <div class="modal" id="modalCategoria">
+        <div class="modal-content">
+          <span class="close-modal" data-close="#modalCategoria">&times;</span>
+          <h3 class="modal-title" id="tituloModalCategoria">Nueva Categoría</h3>
+          <form id="formCategoria" class="form-grid">
+            <div class="grid-2">
+              <label>ID Categoría<input type="number" id="cId" min="1" required></label>
+              <label>Nombre<input type="text" id="cNombre" required></label>
+            </div>
+            <!-- NUEVOS CAMPOS -->
+            <label>Descripción
+              <textarea id="cDescripcion" rows="2" required></textarea>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="cActiva" checked> Activa
+            </label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
+              <button class="button button-outline" type="button" data-close="#modalCategoria">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal subcategoría -->
+      <div class="modal" id="modalSubcategoria">
+        <div class="modal-content">
+          <span class="close-modal" data-close="#modalSubcategoria">&times;</span>
+          <h3 class="modal-title" id="tituloModalSubcategoria">Nueva Subcategoría</h3>
+          <form id="formSubcategoria" class="form-grid">
+            <div class="grid-2">
+              <label>ID Subcategoría<input type="number" id="scId" min="1" required></label>
+              <label>Categoría
+                <select id="scCategoria" required>
+                  <option value="">Seleccione...</option>
+                </select>
+              </label>
+            </div>
+            <label>Nombre<input type="text" id="scNombre" required></label>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
+              <button class="button button-outline" type="button" data-close="#modalSubcategoria">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <!-- Pedidos -->
     <section id="pedidos" class="admin-section">
       <div class="section-header">
@@ -334,12 +381,10 @@
         </table>
       </div>
 
-      <!-- Modal servicio -->
       <div class="modal" id="modalServicio">
         <div class="modal-content">
           <span class="close-modal" data-close="#modalServicio">&times;</span>
           <h3 class="modal-title" id="tituloModalServicio">Nuevo Servicio</h3>
-
           <form id="formServicio" class="form-grid">
             <div class="grid-2">
               <label>ID Servicio<input type="number" id="sId" min="1" required></label>
@@ -350,7 +395,6 @@
               <label>Precio<input type="number" step="0.01" id="sPrecio" required></label>
               <label>Duración Estimada (min)<input type="number" id="sDuracion" min="1" required></label>
             </div>
-
             <div class="form-actions">
               <button class="button button-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
               <button class="button button-outline" type="button" data-close="#modalServicio">Cancelar</button>
@@ -399,10 +443,8 @@
     </section>
   </main>
 
-  <!-- Overlay para modales -->
   <div class="modal-overlay" id="modalOverlay"></div>
 
-  <!-- JS del sitio (scroll/header, etc.) + JS del admin -->
   <script src="../frontend/public/js/script.js"></script>
   <script src="admin.js"></script>
 </body>
