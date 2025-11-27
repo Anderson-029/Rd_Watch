@@ -1,6 +1,107 @@
 // /admin/admin.js (PEGA COMPLETO)
 /* global Chart */
 "use strict";
+// 🔒 VERIFICACIÓN DE AUTENTICACIÓN
+(function checkAuth() {
+    const API_BASE = '../backend/api';
+    
+    // Verificar si hay sesión activa
+    fetch(`${API_BASE}/me.php`, {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.ok || !data.user) {
+            alert('⚠️ Debes iniciar sesión para acceder al panel de administración');
+            window.location.href = '/frontend/public/index.html';
+            return;
+        }
+        
+        const userData = sessionStorage.getItem('user');
+        if (userData) {
+            const user = JSON.parse(userData);
+            if (user.rol !== 'admin') {
+                alert('⚠️ No tienes permisos de administrador');
+                window.location.href = '/frontend/public/user.html';
+                return;
+            }
+            console.log('✅ Usuario admin autenticado:', user.nombre);
+        } else {
+            alert('⚠️ Sesión inválida');
+            window.location.href = '/frontend/public/index.html';
+        }
+    })
+    .catch(err => {
+        console.error('Error verificando sesión:', err);
+        alert('❌ Error al verificar la sesión');
+        window.location.href = '/frontend/public/index.html';
+    });
+})();
+
+// 🔐 FUNCIÓN DE LOGOUT
+function cerrarSesion() {
+    if (!confirm('¿Deseas cerrar sesión?')) return;
+    
+    fetch('http://localhost/rdwatch/backend/api/logout.php', {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+        sessionStorage.removeItem('user');
+        alert('Sesión cerrada correctamente');
+        window.location.href = '../frontend/public/index.html';
+    })
+    .catch(err => {
+        console.error('Error al cerrar sesión:', err);
+        sessionStorage.removeItem('user');
+        window.location.href = '../frontend/public/index.html';
+    });
+}
+
+// 🔒 VERIFICACIÓN DE AUTENTICACIÓN
+(function checkAuth() {
+    const API_BASE = '../backend/api';
+    
+    // Verificar si hay sesión activa
+    fetch(`${API_BASE}/me.php`, {
+        method: 'GET',
+        credentials: 'include' // Enviar cookies
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.ok || !data.user) {
+            // No hay sesión activa
+            alert('⚠️ Debes iniciar sesión para acceder al panel de administración');
+            window.location.href = '/frontend/public/index.html';
+            return;
+        }
+        
+        // Verificar que sea admin
+        const userData = sessionStorage.getItem('user');
+        if (userData) {
+            const user = JSON.parse(userData);
+            if (user.rol !== 'admin') {
+                alert('⚠️ No tienes permisos de administrador');
+                window.location.href = '/frontend/public/user.html';
+                return;
+            }
+            
+            // Usuario autenticado y es admin
+            console.log('✅ Usuario admin autenticado:', user.nombre);
+        } else {
+            // No hay datos en sessionStorage
+            alert('⚠️ Sesión inválida');
+            window.location.href = '/frontend/public/index.html';
+        }
+    })
+    .catch(err => {
+        console.error('Error verificando sesión:', err);
+        alert('❌ Error al verificar la sesión');
+        window.location.href = '/frontend/public/index.html';
+    });
+})();
 
 document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = '../backend/api';
@@ -722,123 +823,221 @@ document.addEventListener("DOMContentLoaded", () => {
   window.editarCategoria = editarCategoria;
   window.eliminarCategoria = eliminarCategoria;
 
-  /* =======================
-   *  SUBCATEGORÍAS
-   * ======================= */
-  const tbodySubcategorias = document.getElementById("tbodySubcategorias");
-  const btnNuevaSubcategoria = document.getElementById("btnNuevaSubcategoria");
-  const formSubcategoria = document.getElementById("formSubcategoria");
-  const scId = document.getElementById("scId");
-  const scCategoria = document.getElementById("scCategoria");
-  const scNombre = document.getElementById("scNombre");
-  const filtroCatSub = document.getElementById("filtroCatSub");
-  const buscarSubcategoria = document.getElementById("buscarSubcategoria");
 
-  function getFiltroCat() { return filtroCatSub ? Number(filtroCatSub.value) || null : null; }
 
-  async function cargarSubcategorias(catId = null) {
-    try {
-      const url = catId ? `${API_BASE}/catalogos.php?tipo=subcategorias&id_categoria=${catId}` :
-                          `${API_BASE}/catalogos.php?tipo=subcategorias`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.ok) {
-        subcategorias = data.subcategorias.map(s => ({
-          id_subcategoria: s.id_subcategoria,
-          nom_subcategoria: s.nom_subcategoria,
-          id_categoria: s.id_categoria,
-          nom_categoria: s.nom_categoria || (categorias.find(c => c.id_categoria === s.id_categoria)?.nom_categoria || '')
-        }));
-        drawSubcategorias();
-      }
-    } catch (e) {
-      console.error('Error cargando subcategorías:', e);
+/* =======================
+ *  SUBCATEGORÍAS 
+ * ======================= */
+const tbodySubcategorias = document.getElementById("tbodySubcategorias");
+const btnNuevaSubcategoria = document.getElementById("btnNuevaSubcategoria");
+const formSubcategoria = document.getElementById("formSubcategoria");
+const scId = document.getElementById("scId");
+const scCategoria = document.getElementById("scCategoria");
+const scNombre = document.getElementById("scNombre");
+const filtroCatSub = document.getElementById("filtroCatSub");
+const buscarSubcategoria = document.getElementById("buscarSubcategoria");
+
+function getFiltroCat() { 
+  return filtroCatSub ? Number(filtroCatSub.value) || null : null; 
+}
+
+async function cargarSubcategorias(catId = null) {
+  try {
+    // Cargar TODAS las subcategorías desde la BD
+    const res = await fetch(`${API_BASE}/categorias.php?action=subcategoria`);
+    const data = await res.json();
+    
+    if (data.ok) {
+      subcategorias = data.subcategorias.map(s => ({
+        id_subcategoria: s.id_subcategoria,
+        nom_subcategoria: s.nom_subcategoria,
+        id_categoria: s.id_categoria,
+        nom_categoria: s.nom_categoria || '',
+        estado: s.estado ?? true
+      }));
+      drawSubcategorias();
+    } else {
+      console.error('Error cargando subcategorías:', data.msg);
     }
+  } catch (e) {
+    console.error('Error cargando subcategorías:', e);
   }
+}
 
-  function drawSubcategorias(list = subcategorias) {
-    if (!tbodySubcategorias) return;
-    const q = (buscarSubcategoria?.value || '').toLowerCase();
-    const f = getFiltroCat();
-    const filtered = list.filter(s =>
-      (!f || s.id_categoria === f) &&
-      (s.nom_subcategoria.toLowerCase().includes(q) || s.nom_categoria.toLowerCase().includes(q))
-    );
-    tbodySubcategorias.innerHTML = filtered.map(s => `
-      <tr>
-        <td>${s.id_subcategoria}</td>
-        <td>${s.nom_categoria}</td>
-        <td>${s.nom_subcategoria}</td>
-        <td class="actions">
-          <button class="button button-outline" onclick="editarSubcategoria(${s.id_subcategoria})"><i class="fas fa-pen"></i></button>
-          <button class="button button-secondary" onclick="eliminarSubcategoria(${s.id_subcategoria})"><i class="fas fa-trash"></i></button>
-        </td>
-      </tr>`).join('');
-  }
+function drawSubcategorias(list = subcategorias) {
+  if (!tbodySubcategorias) return;
+  
+  const q = (buscarSubcategoria?.value || '').toLowerCase();
+  const f = getFiltroCat();
+  
+  const filtered = list.filter(s =>
+    (!f || s.id_categoria === f) &&
+    (s.nom_subcategoria.toLowerCase().includes(q) || 
+     (s.nom_categoria || '').toLowerCase().includes(q))
+  );
+  
+  tbodySubcategorias.innerHTML = filtered.map(s => `
+    <tr>
+      <td>${s.id_subcategoria}</td>
+      <td>${s.nom_categoria}</td>
+      <td>${s.nom_subcategoria}</td>
+      <td class="actions">
+        <button class="button button-outline" onclick="editarSubcategoria(${s.id_categoria}, ${s.id_subcategoria})">
+          <i class="fas fa-pen"></i>
+        </button>
+        <button class="button button-secondary" onclick="eliminarSubcategoria(${s.id_categoria}, ${s.id_subcategoria})">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    </tr>`).join('');
+}
 
-  function refrescarSelectsCategorias() {
-    const opts = ['<option value="">Seleccione...</option>'].concat(
-      categorias.map(c => `<option value="${c.id_categoria}">${c.nom_categoria}</option>`)
-    ).join('');
-    if (scCategoria) scCategoria.innerHTML = opts;
-    if (filtroCatSub) {
-      const all = '<option value="">Todas las categorías</option>' +
-                  categorias.map(c => `<option value="${c.id_categoria}">${c.nom_categoria}</option>`).join('');
-      filtroCatSub.innerHTML = all;
-    }
-  }
-
-  if (btnNuevaSubcategoria && formSubcategoria) {
-    btnNuevaSubcategoria.addEventListener('click', () => {
-      document.getElementById("tituloModalSubcategoria").textContent = "Nueva Subcategoría";
-      formSubcategoria.reset();
-      formSubcategoria.dataset.editing = "";
-      const max = subcategorias.length ? Math.max(...subcategorias.map(s => s.id_subcategoria)) : 0;
-      scId.value = max + 1;
-      openModal("#modalSubcategoria");
-    });
-  }
-
-  function editarSubcategoria(id) {
-    const s = subcategorias.find(x => x.id_subcategoria === id);
-    if (!s) return;
-    document.getElementById("tituloModalSubcategoria").textContent = "Editar Subcategoría";
-    scId.value = s.id_subcategoria; scId.readOnly = true;
-    scNombre.value = s.nom_subcategoria;
-    scCategoria.value = s.id_categoria;
-    formSubcategoria.dataset.editing = String(id);
-    openModal("#modalSubcategoria");
-  }
-
-  async function eliminarSubcategoria(id) {
-    if (!confirm('¿Eliminar subcategoría?')) return;
-    try {
-      const res = await fetch(`${API_BASE}/subcategorias.php`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_subcategoria: id })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        alert('Subcategoría eliminada');
-        await cargarSubcategorias(getFiltroCat());
-      } else {
-        alert(data.msg || 'Error al eliminar subcategoría');
-      }
-    } catch (e) {
-      console.error(e); alert('Error al eliminar subcategoría');
-    }
-  }
-
-  if (buscarSubcategoria) {
-    buscarSubcategoria.addEventListener('input', () => drawSubcategorias());
-  }
+function refrescarSelectsCategorias() {
+  const opts = ['<option value="">Seleccione...</option>'].concat(
+    categorias.map(c => `<option value="${c.id_categoria}">${c.nom_categoria}</option>`)
+  ).join('');
+  
+  if (scCategoria) scCategoria.innerHTML = opts;
+  
   if (filtroCatSub) {
-    filtroCatSub.addEventListener('change', async () => {
-      const id = getFiltroCat();
-      await cargarSubcategorias(id);
-    });
+    const all = '<option value="">Todas las categorías</option>' +
+                categorias.map(c => `<option value="${c.id_categoria}">${c.nom_categoria}</option>`).join('');
+    filtroCatSub.innerHTML = all;
   }
+}
+
+if (btnNuevaSubcategoria && formSubcategoria) {
+  btnNuevaSubcategoria.addEventListener('click', () => {
+    document.getElementById("tituloModalSubcategoria").textContent = "Nueva Subcategoría";
+    formSubcategoria.reset();
+    formSubcategoria.dataset.editing = "";
+    formSubcategoria.dataset.editingCat = "";
+    
+    const max = subcategorias.length ? Math.max(...subcategorias.map(s => s.id_subcategoria)) : 0;
+    scId.value = max + 1;
+    scId.readOnly = false;
+    
+    openModal("#modalSubcategoria");
+  });
+}
+
+function editarSubcategoria(idCat, idSub) {
+  const s = subcategorias.find(x => 
+    x.id_categoria === idCat && x.id_subcategoria === idSub
+  );
+  if (!s) return;
+  
+  document.getElementById("tituloModalSubcategoria").textContent = "Editar Subcategoría";
+  scId.value = s.id_subcategoria; 
+  scId.readOnly = true;
+  scNombre.value = s.nom_subcategoria;
+  scCategoria.value = s.id_categoria;
+  
+  formSubcategoria.dataset.editing = String(idSub);
+  formSubcategoria.dataset.editingCat = String(idCat);
+  
+  openModal("#modalSubcategoria");
+}
+
+async function eliminarSubcategoria(idCat, idSub) {
+  if (!confirm('¿Eliminar subcategoría?')) return;
+  
+  try {
+    const res = await fetch(`${API_BASE}/categorias.php?action=subcategoria`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        id_categoria: idCat,
+        id_subcategoria: idSub 
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.ok) {
+      alert('Subcategoría eliminada correctamente');
+      await cargarSubcategorias();
+      await cargarCatalogosProducto();
+    } else {
+      alert(data.msg || 'Error al eliminar subcategoría');
+    }
+  } catch (e) {
+    console.error(e); 
+    alert('Error al eliminar subcategoría: ' + e.message);
+  }
+}
+
+if (buscarSubcategoria) {
+  buscarSubcategoria.addEventListener('input', () => drawSubcategorias());
+}
+
+if (filtroCatSub) {
+  filtroCatSub.addEventListener('change', () => drawSubcategorias());
+}
+
+if (formSubcategoria) {
+  formSubcategoria.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Validaciones
+    const idCat = Number(scCategoria.value);
+    const idSub = Number(scId.value);
+    const nombre = scNombre.value.trim();
+    
+    if (!idCat) {
+      alert('Debe seleccionar una categoría');
+      return;
+    }
+    
+    if (!idSub || idSub <= 0) {
+      alert('ID de subcategoría inválido');
+      return;
+    }
+    
+    if (!nombre) {
+      alert('El nombre es requerido');
+      return;
+    }
+    
+    const payload = {
+      id_categoria: idCat,
+      id_subcategoria: idSub,
+      nom_subcategoria: nombre
+    };
+    
+    const editing = formSubcategoria.dataset.editing;
+    
+    console.log('📤 Enviando subcategoría:', payload); // Debug
+    
+    try {
+      const method = editing ? 'PUT' : 'POST';
+      const res = await fetch(`${API_BASE}/categorias.php?action=subcategoria`, {
+        method, 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      console.log('📥 Respuesta servidor:', data); // Debug
+      
+      if (data.ok) {
+        alert(data.msg || 'Subcategoría guardada correctamente');
+        closeModal("#modalSubcategoria");
+        scId.readOnly = false;
+        await cargarSubcategorias();
+        await cargarCatalogosProducto();
+      } else {
+        alert(data.msg || 'Error al guardar subcategoría');
+      }
+    } catch (e2) { 
+      console.error(e2); 
+      alert('Error al guardar subcategoría: ' + e2.message); 
+    }
+  });
+}
+
+window.editarSubcategoria = editarSubcategoria;
+window.eliminarSubcategoria = eliminarSubcategoria;
 
   /* =======================
    *  CONFIG
@@ -873,12 +1072,9 @@ document.addEventListener("DOMContentLoaded", () => {
     drawClientes();
     renderDashboard();
 
-    const btnLogout = document.getElementById("btn-logout");
+   const btnLogout = document.getElementById("btn-logout");
     if (btnLogout) {
-      btnLogout.addEventListener("click", () => {
-        alert("Sesión cerrada");
-        window.location.href = "../frontend/public/index.html";
-      });
+      btnLogout.addEventListener("click", cerrarSesion); // ← USA LA FUNCIÓN cerrarSesion
     }
   }
   init();

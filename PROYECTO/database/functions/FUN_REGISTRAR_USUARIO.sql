@@ -12,7 +12,9 @@ CREATE OR REPLACE FUNCTION fun_registrar_usuario(
     message      TEXT,
     id_usuario   tab_Usuarios.id_usuario%TYPE,
     token        TEXT
-) AS $$
+) 
+LANGUAGE plpgsql
+AS $$
 DECLARE
     v_id_usuario      tab_Usuarios.id_usuario%TYPE;
     v_email_existente BOOLEAN;
@@ -20,32 +22,43 @@ DECLARE
     v_password_hash   tab_Usuarios.contra%TYPE;
     v_token           TEXT;
 BEGIN
-    -- Unicidad de correo (case-insensitive recomendado si tienes idx LOWER)
+    -- 1. Validar si el correo ya existe (case-insensitive recomendado)
     SELECT EXISTS(
-        SELECT 1 FROM tab_Usuarios WHERE LOWER(correo_usuario) = LOWER(p_email)
-    ) INTO v_email_existente;
+        SELECT 1
+        FROM tab_Usuarios u
+        WHERE LOWER(u.correo_usuario) = LOWER(p_email)
+    )
+    INTO v_email_existente;
 
     IF v_email_existente THEN
-        RETURN QUERY SELECT 'ERROR','El email ya está registrado',
-                      NULL::tab_Usuarios.id_usuario%TYPE, NULL::TEXT;
+        status     := 'ERROR';
+        message    := 'El email ya está registrado';
+        id_usuario := NULL;
+        token      := NULL;
+        RETURN NEXT;
         RETURN;
     END IF;
 
+    -- 2. Validar longitud mínima de contraseña
     IF LENGTH(p_password) < 8 THEN
-        RETURN QUERY SELECT 'ERROR','La contraseña debe tener al menos 8 caracteres',
-                      NULL::tab_Usuarios.id_usuario%TYPE, NULL::TEXT;
+        status     := 'ERROR';
+        message    := 'La contraseña debe tener al menos 8 caracteres';
+        id_usuario := NULL;
+        token      := NULL;
+        RETURN NEXT;
         RETURN;
     END IF;
 
-    -- Generar nuevo id (si no usas secuencia/identity)
-    SELECT COALESCE(MAX(id_usuario),0) + 1::BIGINT
-      INTO v_id_usuario
-      FROM tab_Usuarios;
+    -- 3. Generar nuevo id_usuario (si no usas secuencia/identity)
+    SELECT COALESCE(MAX(u.id_usuario), 0) + 1
+    INTO v_id_usuario
+    FROM tab_Usuarios u;
 
-    -- Salt + hash (MD5 para respetar tu diseño actual)
-    v_salt := MD5(random()::text || clock_timestamp()::text);
+    -- 4. Generar salt y hash de la contraseña
+    v_salt          := MD5(random()::text || clock_timestamp()::text);
     v_password_hash := MD5(p_password || v_salt);
 
+    -- 5. Insertar el usuario
     INSERT INTO tab_Usuarios (
         id_usuario, nom_usuario, correo_usuario, num_telefono_usuario,
         direccion_principal, fecha_registro, activo,
@@ -58,12 +71,22 @@ BEGIN
         CURRENT_USER, CURRENT_TIMESTAMP
     );
 
+    -- 6. Generar token (por ahora solo como ejemplo con MD5)
     v_token := MD5(v_id_usuario::text || p_email || clock_timestamp()::text);
 
-    RETURN QUERY SELECT 'SUCCESS','Usuario registrado correctamente', v_id_usuario, v_token;
+    -- 7. Asignar valores de retorno
+    status     := 'SUCCESS';
+    message    := 'Usuario registrado correctamente';
+    id_usuario := v_id_usuario;
+    token      := v_token;
+    RETURN NEXT;
 
-EXCEPTION WHEN OTHERS THEN
-    RETURN QUERY SELECT 'ERROR','Error al registrar: '||SQLERRM,
-                  NULL::tab_Usuarios.id_usuario%TYPE, NULL::TEXT;
+EXCEPTION
+    WHEN OTHERS THEN
+        status     := 'ERROR';
+        message    := 'Error al registrar: ' || SQLERRM;
+        id_usuario := NULL;
+        token      := NULL;
+        RETURN NEXT;
 END;
-$$ LANGUAGE plpgsql;
+$$;

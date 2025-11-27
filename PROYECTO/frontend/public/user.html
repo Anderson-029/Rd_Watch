@@ -813,6 +813,56 @@
     </main>
 
     <script>
+    // 🔒 VERIFICACIÓN DE AUTENTICACIÓN
+(function checkAuth() {
+    const userData = sessionStorage.getItem('user');
+    
+    if (!userData) {
+        alert('⚠️ Debes iniciar sesión para acceder a tu panel');
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    try {
+        const user = JSON.parse(userData);
+        
+        // Actualizar nombre del usuario en la página
+        const userNameEl = document.getElementById('userName');
+        if (userNameEl) {
+            userNameEl.textContent = user.nombre.split(' ')[0]; // Primer nombre
+        }
+        
+        // Actualizar datos del perfil
+        const perfilNombre = document.getElementById('perfilNombre');
+        const perfilEmail = document.getElementById('perfilEmail');
+        
+        if (perfilNombre) perfilNombre.textContent = user.nombre;
+        if (perfilEmail) perfilEmail.textContent = user.correo;
+        
+        // Si es admin, ofrecer ir al panel de admin
+        if (user.rol === 'admin') {
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                const adminAlert = document.createElement('div');
+                adminAlert.style.cssText = 'background: var(--primary-color); color: var(--white); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;';
+                adminAlert.innerHTML = `
+                    <strong>👑 Eres administrador</strong>
+                    <br><br>
+                    <a href="/admin/admin.html" style="color: var(--white); text-decoration: underline;">
+                        Ir al Panel de Administración →
+                    </a>
+                `;
+                welcomeSection.insertBefore(adminAlert, welcomeSection.firstChild);
+            }
+        }
+        
+        console.log('✅ Usuario autenticado:', user.nombre);
+    } catch (err) {
+        console.error('Error al verificar usuario:', err);
+        alert('❌ Sesión inválida');
+        window.location.href = 'index.html';
+    }
+})();
         const userId = 1;
 
         function showNotification(message, isError = false) {
@@ -872,13 +922,8 @@
                     e.preventDefault();
                     const section = link.getAttribute('data-section');
                     
-                    if (link.id === 'logoutLink') {
-                        if (confirm('¿Deseas cerrar sesión?')) {
-                            showNotification('Sesión cerrada correctamente');
-                            setTimeout(() => {
-                                window.location.href = 'index.html';
-                            }, 1500);
-                        }
+                  if (link.id === 'logoutLink') {
+                        cerrarSesion(); // ← LLAMAR A LA FUNCIÓN cerrarSesion
                         return;
                     }
                     

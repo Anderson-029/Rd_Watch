@@ -173,9 +173,12 @@ try {
                 break;
         }
         
+
+
+
     } else if ($action === 'subcategoria') {
         // ================================================
-        // CRUD SUBCATEGORÍAS
+        // CRUD SUBCATEGORÍAS (CORREGIDO)
         // ================================================
         switch($method) {
             case 'GET':
@@ -207,6 +210,9 @@ try {
                 // Insertar nueva subcategoría
                 $data = json_decode(file_get_contents("php://input"), true);
                 
+                // Log para debug
+                error_log("📥 POST Subcategoría recibido: " . json_encode($data));
+                
                 // Validaciones
                 if (empty($data['id_categoria'])) {
                     http_response_code(400);
@@ -226,20 +232,44 @@ try {
                     exit;
                 }
                 
-                // Verificar que la categoría padre exista
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM tab_Categorias WHERE id_categoria = :id_cat");
+                // Verificar que la categoría padre exista y esté activa
+                $stmt = $pdo->prepare("
+                    SELECT COUNT(*) 
+                    FROM tab_Categorias 
+                    WHERE id_categoria = :id_cat AND estado = TRUE
+                ");
                 $stmt->execute([':id_cat' => intval($data['id_categoria'])]);
+                
                 if ($stmt->fetchColumn() == 0) {
                     http_response_code(400);
-                    echo json_encode(['ok' => false, 'msg' => 'La categoría padre no existe']);
+                    echo json_encode(['ok' => false, 'msg' => 'La categoría padre no existe o está inactiva']);
                     exit;
                 }
                 
-                // Insertar subcategoría directamente
+                // Verificar si ya existe esa subcategoría en esa categoría
+                $stmt = $pdo->prepare("
+                    SELECT COUNT(*) 
+                    FROM tab_Subcategorias 
+                    WHERE id_categoria = :id_cat 
+                    AND id_subcategoria = :id_sub
+                ");
+                $stmt->execute([
+                    ':id_cat' => intval($data['id_categoria']),
+                    ':id_sub' => intval($data['id_subcategoria'])
+                ]);
+                
+                if ($stmt->fetchColumn() > 0) {
+                    http_response_code(400);
+                    echo json_encode(['ok' => false, 'msg' => 'Ya existe una subcategoría con ese ID en esta categoría']);
+                    exit;
+                }
+                
+                // Insertar subcategoría
+                // El trigger llenará automáticamente usr_insert, fec_insert, usr_update, fec_update
                 $stmt = $pdo->prepare("
                     INSERT INTO tab_Subcategorias 
-                    (id_categoria, id_subcategoria, nom_subcategoria, estado, usr_insert, fec_insert) 
-                    VALUES (:id_cat, :id_sub, :nombre, TRUE, CURRENT_USER, CURRENT_TIMESTAMP)
+                    (id_categoria, id_subcategoria, nom_subcategoria, estado) 
+                    VALUES (:id_cat, :id_sub, :nombre, TRUE)
                 ");
                 
                 try {
@@ -259,7 +289,9 @@ try {
                         http_response_code(400);
                         echo json_encode(['ok' => false, 'msg' => 'La subcategoría ya existe']);
                     } else {
-                        throw $e;
+                        error_log("Error al insertar subcategoría: " . $e->getMessage());
+                        http_response_code(500);
+                        echo json_encode(['ok' => false, 'msg' => 'Error en la base de datos: ' . $e->getMessage()]);
                     }
                 }
                 break;
@@ -267,6 +299,8 @@ try {
             case 'PUT':
                 // Actualizar subcategoría existente
                 $data = json_decode(file_get_contents("php://input"), true);
+                
+                error_log("📥 PUT Subcategoría recibido: " . json_encode($data));
                 
                 // Validaciones
                 if (empty($data['id_categoria'])) {
@@ -288,16 +322,17 @@ try {
                 }
                 
                 // Determinar estado
-                $estado = isset($data['estado']) ? ($data['estado'] === 'true' || $data['estado'] === true) : true;
+                $estado = isset($data['estado']) ? 
+                          ($data['estado'] === 'true' || $data['estado'] === true) : 
+                          true;
                 
-                // Actualizar subcategoría
+                // Actualizar subcategoría (el trigger llenará usr_update y fec_update)
                 $stmt = $pdo->prepare("
                     UPDATE tab_Subcategorias 
                     SET nom_subcategoria = :nombre, 
-                        estado = :estado,
-                        usr_update = CURRENT_USER,
-                        fec_update = CURRENT_TIMESTAMP
-                    WHERE id_categoria = :id_cat AND id_subcategoria = :id_sub
+                        estado = :estado
+                    WHERE id_categoria = :id_cat 
+                    AND id_subcategoria = :id_sub
                 ");
                 
                 $stmt->execute([
@@ -325,6 +360,8 @@ try {
                 // Eliminar subcategoría (soft delete)
                 $data = json_decode(file_get_contents("php://input"), true);
                 
+                error_log("📥 DELETE Subcategoría recibido: " . json_encode($data));
+                
                 // Validaciones
                 if (empty($data['id_categoria'])) {
                     http_response_code(400);
@@ -338,13 +375,12 @@ try {
                     exit;
                 }
                 
-                // Desactivar subcategoría
+                // Desactivar subcategoría (el trigger llenará usr_update y fec_update)
                 $stmt = $pdo->prepare("
                     UPDATE tab_Subcategorias 
-                    SET estado = FALSE,
-                        usr_update = CURRENT_USER,
-                        fec_update = CURRENT_TIMESTAMP
-                    WHERE id_categoria = :id_cat AND id_subcategoria = :id_sub
+                    SET estado = FALSE
+                    WHERE id_categoria = :id_cat 
+                    AND id_subcategoria = :id_sub
                 ");
                 
                 $stmt->execute([
@@ -389,7 +425,6 @@ try {
         'error' => $e->getMessage(),
         'code' => $e->getCode()
     ]);
-    
 } catch (Exception $e) {
     // Error general
     http_response_code(500);
