@@ -39,14 +39,14 @@ try {
 
     // Obtener el rol del usuario
     $stmtRol = $pdo->prepare("SELECT rol FROM tab_Usuarios WHERE id_usuario = :id");
-    $stmtRol->execute([':id' => $row['id_usuario']]);
+    $stmtRol->execute([':id' => $row['ret_id_usuario']]);  // ⬅️ CAMBIO: ret_id_usuario
     $rolData = $stmtRol->fetch(PDO::FETCH_ASSOC);
     $rol = $rolData['rol'] ?? 'cliente';
 
     // Guardar datos en la sesión
-    $_SESSION['user_id']   = (int)$row['id_usuario'];
-    $_SESSION['user_name'] = $row['nombre'];
-    $_SESSION['user_mail'] = $row['email'];
+    $_SESSION['user_id']   = (int)$row['ret_id_usuario'];      // ⬅️ CAMBIO
+    $_SESSION['user_name'] = $row['ret_nombre'];               // ⬅️ CAMBIO
+    $_SESSION['user_mail'] = $row['ret_email'];                // ⬅️ CAMBIO
     $_SESSION['user_rol']  = $rol;
 
     // Log para debug
@@ -55,11 +55,11 @@ try {
     echo json_encode([
         'ok' => true,
         'user' => [
-            'id' => $row['id_usuario'],
-            'nombre' => $row['nombre'],
-            'correo' => $row['email'],
-            'telefono' => $row['telefono'],
-            'direccion' => $row['direccion'],
+            'id' => $row['ret_id_usuario'],          // ⬅️ CAMBIO
+            'nombre' => $row['ret_nombre'],          // ⬅️ CAMBIO
+            'correo' => $row['ret_email'],           // ⬅️ CAMBIO
+            'telefono' => $row['ret_telefono'],      // ⬅️ CAMBIO
+            'direccion' => $row['ret_direccion'],    // ⬅️ CAMBIO
             'rol' => $rol
         ],
         'redirect' => $rol === 'admin' ? '/admin/admin.html' : '/frontend/public/user.html'
