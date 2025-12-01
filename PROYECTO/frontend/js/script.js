@@ -1,3 +1,5 @@
+const API_BASE = 'http://localhost/RD_WATCH/backend/api';
+
 document.addEventListener('DOMContentLoaded', function() {
     // Preloader
     const preloader = document.querySelector('.preloader');
@@ -252,68 +254,110 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Validación en tiempo real para formulario de login
     if (loginForm) {
-    loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
         
-        const email = loginEmail.value.trim();
-        const password = loginPassword.value.trim();
-        let isValid = true;
-        
-        // Validar email
-        if (email === '') {
-            loginEmail.classList.add('invalid');
-            loginEmail.nextElementSibling.textContent = 'El correo electrónico es requerido';
-            loginEmail.nextElementSibling.style.display = 'block';
-            isValid = false;
-        } else if (!validateEmail(email)) {
-            loginEmail.classList.add('invalid');
-            loginEmail.nextElementSibling.textContent = 'Por favor ingresa un correo electrónico válido';
-            loginEmail.nextElementSibling.style.display = 'block';
-            isValid = false;
-        }
-        
-        // Validar contraseña
-        if (password === '') {
-            loginPassword.classList.add('invalid');
-            loginPassword.parentElement.nextElementSibling.textContent = 'La contraseña es requerida';
-            loginPassword.parentElement.nextElementSibling.style.display = 'block';
-            isValid = false;
-        } else if (password.length < 8) {
-            loginPassword.classList.add('invalid');
-            loginPassword.parentElement.nextElementSibling.textContent = 'La contraseña debe tener al menos 8 caracteres';
-            loginPassword.parentElement.nextElementSibling.style.display = 'block';
-            isValid = false;
-        }
-        
-        if (isValid) {
-            const submitBtn = this.querySelector('.btn-login');
-            const btnText = submitBtn.querySelector('.btn-text');
-            const btnLoader = submitBtn.querySelector('.btn-loader');
+        loginEmail.addEventListener('input', function() {
+            const errorElement = this.nextElementSibling;
             
-            btnText.style.opacity = '0';
-            btnLoader.style.display = 'flex';
-            submitBtn.disabled = true;
+            if (this.value.trim() === '') {
+                this.classList.remove('valid', 'invalid');
+                errorElement.style.display = 'none';
+            } else if (!validateEmail(this.value.trim())) {
+                this.classList.add('invalid');
+                this.classList.remove('valid');
+                errorElement.textContent = 'Por favor ingresa un correo electrónico válido';
+                errorElement.style.display = 'block';
+            } else {
+                this.classList.add('valid');
+                this.classList.remove('invalid');
+                errorElement.style.display = 'none';
+            }
+        });
+        
+        loginPassword.addEventListener('input', function() {
+            const errorElement = this.parentElement.nextElementSibling;
             
-            // Llamar al backend
-            fetch('http://localhost/rdwatch/backend/api/login.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include', // IMPORTANTE: Enviar cookies de sesión
-                body: JSON.stringify({
-                    email: email,
-                    password: password
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                btnText.style.opacity = '1';
-                btnLoader.style.display = 'none';
-                submitBtn.disabled = false;
+            if (this.value.trim() === '') {
+                this.classList.remove('valid', 'invalid');
+                errorElement.style.display = 'none';
+            } else if (this.value.length < 8) {
+                this.classList.add('invalid');
+                this.classList.remove('valid');
+                errorElement.textContent = 'La contraseña debe tener al menos 8 caracteres';
+                errorElement.style.display = 'block';
+            } else {
+                this.classList.add('valid');
+                this.classList.remove('invalid');
+                errorElement.style.display = 'none';
+            }
+        });
+        
+        // 🔽 LOGIN REAL CON BACKEND + ROLES
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value.trim();
+            let isValid = true;
+            
+            // Validar email
+            if (email === '') {
+                loginEmail.classList.add('invalid');
+                loginEmail.nextElementSibling.textContent = 'El correo electrónico es requerido';
+                loginEmail.nextElementSibling.style.display = 'block';
+                isValid = false;
+            } else if (!validateEmail(email)) {
+                loginEmail.classList.add('invalid');
+                loginEmail.nextElementSibling.textContent = 'Por favor ingresa un correo electrónico válido';
+                loginEmail.nextElementSibling.style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validar contraseña
+            if (password === '') {
+                loginPassword.classList.add('invalid');
+                loginPassword.parentElement.nextElementSibling.textContent = 'La contraseña es requerida';
+                loginPassword.parentElement.nextElementSibling.style.display = 'block';
+                isValid = false;
+            } else if (password.length < 8) {
+                loginPassword.classList.add('invalid');
+                loginPassword.parentElement.nextElementSibling.textContent = 'La contraseña debe tener al menos 8 caracteres';
+                loginPassword.parentElement.nextElementSibling.style.display = 'block';
+                isValid = false;
+            }
+            
+            if (isValid) {
+                const submitBtn = this.querySelector('.btn-login');
+                const btnText = submitBtn.querySelector('.btn-text');
+                const btnLoader = submitBtn.querySelector('.btn-loader');
                 
-                if (data.ok) {
-                    showNotification('¡Inicio de sesión exitoso! Redirigiendo...');
+                btnText.style.opacity = '0';
+                btnLoader.style.display = 'flex';
+                
+                fetch('http://localhost/rdwatch/backend/api/login.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btnText.style.opacity = '1';
+                    btnLoader.style.display = 'none';
+                    
+                    console.log('Respuesta login:', data);
+                    
+                    if (!data.ok) {
+                        showNotification(data.msg || 'Credenciales inválidas', true);
+                        return;
+                    }
+                    
+                    showNotification('¡Inicio de sesión exitoso!');
+                    
+                    // ✅ GUARDAR EN sessionStorage
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    
                     closeModal();
                     loginForm.reset();
                     
@@ -321,31 +365,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     loginEmail.classList.remove('valid', 'invalid');
                     loginPassword.classList.remove('valid', 'invalid');
                     
-                    // Guardar datos del usuario en sessionStorage
-                    sessionStorage.setItem('user', JSON.stringify(data.user));
-                    
-                    // Redirigir según el rol
+                    // Redirección por rol
                     setTimeout(() => {
-                        if (data.user.rol === 'admin') {
-                            window.location.href = '/admin/admin.html';
+                        if (data.user && data.user.rol === 'admin') {
+                            window.location.href = '/rdwatch/admin/admin.html';
                         } else {
-                            window.location.href = '/frontend/public/user.html';
+                            window.location.href = '/rdwatch/frontend/public/user.html';
                         }
                     }, 1000);
-                } else {
-                    showNotification(data.msg || 'Credenciales inválidas', true);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                btnText.style.opacity = '1';
-                btnLoader.style.display = 'none';
-                submitBtn.disabled = false;
-                showNotification('Error al conectar con el servidor', true);
-            });
-        }
-    });
-}
+                })
+                .catch(err => {
+                    console.error('Error login:', err);
+                    btnText.style.opacity = '1';
+                    btnLoader.style.display = 'none';
+                    showNotification('Error al conectar con el servidor', true);
+                });
+            }
+        });
+    }
     
     // Validación para formulario de registro
     if (signupForm) {

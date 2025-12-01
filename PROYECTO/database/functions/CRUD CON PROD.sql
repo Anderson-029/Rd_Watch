@@ -268,111 +268,87 @@ LANGUAGE PLPGSQL;
 -- ==========================================
 -- CRUD TABLA: tab_Productos
 -- ==========================================
--
+
+--función de insertar productos 
 CREATE OR REPLACE FUNCTION public.fun_insert_productos(
-    wid_producto tab_Productos.id_producto%TYPE,         -- BIGINT
-    wid_marca tab_Productos.id_marca%TYPE,               -- BIGINT
-    wnom_producto tab_Productos.nom_producto%TYPE,       -- VARCHAR
-    wdescripcion tab_Productos.descripcion%TYPE,         -- TEXT
-    wprecio tab_Productos.precio%TYPE,                   -- NUMERIC
-    wid_categoria tab_Productos.id_categoria%TYPE,       -- INTEGER
-    wid_subcategoria tab_Productos.id_subcategoria%TYPE, -- INTEGER
-    wstock tab_Productos.stock%TYPE,                     -- SMALLINT
-    wurl_imagen tab_Productos.url_imagen%TYPE DEFAULT NULL -- VARCHAR
-) RETURNS TEXT AS
-$BODY$
+    wid_producto bigint,
+    wid_marca bigint,
+    wnom_producto character varying,
+    wdescripcion text,
+    wprecio numeric,
+    wid_categoria integer,
+    wid_subcategoria integer,
+    wstock smallint,
+    wurl_imagen character varying DEFAULT NULL::character varying)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+AS $BODY$
 DECLARE 
     wproducto tab_Productos.id_producto%TYPE;
     wmarca_existe BOOLEAN := FALSE;
     wcategoria_existe BOOLEAN := FALSE;
     wsubcategoria_existe BOOLEAN := FALSE;
 BEGIN
-    -- ID duplicado
+    -- 1. Verificar si ya existe el ID de producto
     SELECT id_producto INTO wproducto FROM tab_Productos WHERE id_producto = wid_producto;
     IF FOUND THEN
         RETURN 'ERROR: El producto con ID ' || wid_producto || ' ya existe';
     END IF;
 
-    -- Nombre duplicado
-    SELECT id_producto INTO wproducto FROM tab_Productos
-    WHERE LOWER(TRIM(nom_producto)) = LOWER(TRIM(wnom_producto));
-    IF FOUND THEN
-        RETURN 'ERROR: Ya existe un producto con el nombre: ' || wnom_producto;
-    END IF;
+    -- 2. Verificar Marca (Validación Robustecida)
+    -- Buscamos el ID. El estado debe ser TRUE (o NULL, que se asume activo si es el caso, pero aquí forzamos TRUE)
+    SELECT EXISTS(
+        SELECT 1 
+        FROM tab_Marcas 
+        WHERE id_marca = wid_marca 
+        AND (estado_marca = TRUE OR estado_marca IS TRUE)
+    ) INTO wmarca_existe;
 
-    -- Obligatorios
-    IF wid_producto IS NULL OR wid_producto <= 0 THEN
-        RETURN 'ERROR: El ID del producto debe ser positivo';
-    END IF;
-    IF wnom_producto IS NULL OR TRIM(wnom_producto) = '' THEN
-        RETURN 'ERROR: El nombre del producto no puede estar vacío';
-    END IF;
-    IF wdescripcion IS NULL OR TRIM(wdescripcion) = '' THEN
-        RETURN 'ERROR: La descripción del producto no puede estar vacía';
-    END IF;
-
-    -- Rangos
-    IF wprecio IS NULL OR wprecio <= 0 THEN
-        RETURN 'ERROR: El precio debe ser mayor a cero';
-    END IF;
-    IF wstock IS NULL OR wstock < 0 THEN
-        RETURN 'ERROR: El stock no puede ser negativo';
-    END IF;
-
-    -- FK Marca (OJO: tab_Marcas en plural)
-    SELECT EXISTS(SELECT 1 FROM tab_Marcas WHERE id_marca = wid_marca AND estado_marca = TRUE)
-    INTO wmarca_existe;
     IF NOT wmarca_existe THEN
-        RETURN 'ERROR: La marca con ID ' || wid_marca || ' no existe o está inactiva';
+        -- Debug: Retornar mensaje específico si falla
+        RETURN 'ERROR: La marca con ID ' || wid_marca || ' no existe o está inactiva (Verifique tab_Marcas)';
     END IF;
 
-    -- FK Categoría
-    SELECT EXISTS(SELECT 1 FROM tab_Categorias WHERE id_categoria = wid_categoria AND estado = TRUE)
-    INTO wcategoria_existe;
+    -- 3. Verificar Categoría
+    SELECT EXISTS(
+        SELECT 1 FROM tab_Categorias 
+        WHERE id_categoria = wid_categoria AND estado = TRUE
+    ) INTO wcategoria_existe;
+    
     IF NOT wcategoria_existe THEN
         RETURN 'ERROR: La categoría con ID ' || wid_categoria || ' no existe o está inactiva';
     END IF;
 
-    -- FK Subcategoría
+    -- 4. Verificar Subcategoría
     SELECT EXISTS(
         SELECT 1 FROM tab_Subcategorias 
         WHERE id_categoria = wid_categoria 
           AND id_subcategoria = wid_subcategoria 
           AND estado = TRUE
     ) INTO wsubcategoria_existe;
+    
     IF NOT wsubcategoria_existe THEN
-        RETURN 'ERROR: La subcategoría ' || wid_subcategoria || ' no existe, está inactiva o no pertenece a la categoría ' || wid_categoria;
+        RETURN 'ERROR: La subcategoría ' || wid_subcategoria || ' no existe o no pertenece a la categoría ' || wid_categoria;
     END IF;
 
-    -- URL imagen
-    IF wurl_imagen IS NOT NULL AND TRIM(wurl_imagen) <> '' THEN
-        IF LENGTH(wurl_imagen) > 255 THEN
-            RETURN 'ERROR: La URL de la imagen no puede superar 255 caracteres';
-        END IF;
-        IF wurl_imagen NOT LIKE 'http://%' AND wurl_imagen NOT LIKE 'https://%' THEN
-            RETURN 'ERROR: La URL de la imagen debe comenzar con http:// o https://';
-        END IF;
-    END IF;
+    -- 5. Insertar
+    INSERT INTO tab_Productos (
+        id_producto, id_marca, nom_producto, descripcion, precio,
+        id_categoria, id_subcategoria, stock, url_imagen, estado
+    ) VALUES (
+        wid_producto, wid_marca, TRIM(wnom_producto), TRIM(wdescripcion), wprecio,
+        wid_categoria, wid_subcategoria, wstock,
+        CASE WHEN wurl_imagen IS NULL OR TRIM(wurl_imagen) = '' THEN NULL ELSE TRIM(wurl_imagen) END,
+        TRUE
+    );
+    
+    RETURN 'SUCCESS: Producto insertado correctamente con ID ' || wid_producto;
 
-    -- Inserción
-    BEGIN
-        INSERT INTO tab_Productos (
-            id_producto, id_marca, nom_producto, descripcion, precio,
-            id_categoria, id_subcategoria, stock, url_imagen, estado
-        ) VALUES (
-            wid_producto, wid_marca, TRIM(wnom_producto), TRIM(wdescripcion), wprecio,
-            wid_categoria, wid_subcategoria, wstock,
-            CASE WHEN wurl_imagen IS NULL OR TRIM(wurl_imagen) = '' THEN NULL ELSE TRIM(wurl_imagen) END,
-            TRUE
-        );
-        RETURN 'SUCCESS: Producto insertado correctamente con ID ' || wid_producto;
-    EXCEPTION
-        WHEN OTHERS THEN
-            RETURN 'ERROR: ' || SQLERRM;
-    END;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 'ERROR SQL: ' || SQLERRM;
 END;
-$BODY$
-LANGUAGE plpgsql;
+$BODY$;
 
 
 

@@ -1,9 +1,12 @@
-// /admin/admin.js (PEGA COMPLETO)
 /* global Chart */
 "use strict";
-// 🔒 VERIFICACIÓN DE AUTENTICACIÓN
+
+// ==========================================
+// 1. VERIFICACIÓN DE AUTENTICACIÓN (RUTAS CORREGIDAS)
+// ==========================================
 (function checkAuth() {
-    const API_BASE = '../backend/api';
+    // Definimos la base de la API apuntando a la carpeta EXACTA
+    const API_BASE = 'http://localhost/RD_WATCH/backend/api'; 
     
     // Verificar si hay sesión activa
     fetch(`${API_BASE}/me.php`, {
@@ -12,116 +15,70 @@
     })
     .then(res => res.json())
     .then(data => {
+        // Si no hay sesión, redirigir al login usando la ruta correcta
         if (!data.ok || !data.user) {
             alert('⚠️ Debes iniciar sesión para acceder al panel de administración');
-            window.location.href = '/frontend/public/index.html';
+            window.location.href = '/RD_WATCH/frontend/public/index.html';
             return;
         }
         
-        const userData = sessionStorage.getItem('user');
-        if (userData) {
-            const user = JSON.parse(userData);
-            if (user.rol !== 'admin') {
-                alert('⚠️ No tienes permisos de administrador');
-                window.location.href = '/frontend/public/user.html';
-                return;
-            }
-            console.log('✅ Usuario admin autenticado:', user.nombre);
-        } else {
-            alert('⚠️ Sesión inválida');
-            window.location.href = '/frontend/public/index.html';
+        // Verificación de rol
+        if (data.user.rol !== 'admin') {
+            alert('⚠️ No tienes permisos de administrador');
+            window.location.href = '/RD_WATCH/frontend/public/user.html';
+            return;
         }
+        
+        console.log('✅ Usuario admin autenticado:', data.user.nombre);
     })
     .catch(err => {
         console.error('Error verificando sesión:', err);
-        alert('❌ Error al verificar la sesión');
-        window.location.href = '/frontend/public/index.html';
+        // En caso de error, sacar al usuario a la ruta correcta
+        window.location.href = '/RD_WATCH/frontend/public/index.html';
     });
 })();
 
-// 🔐 FUNCIÓN DE LOGOUT
+// ==========================================
+// 2. FUNCIÓN DE LOGOUT (CORREGIDO)
+// ==========================================
 function cerrarSesion() {
     if (!confirm('¿Deseas cerrar sesión?')) return;
     
-    fetch('http://localhost/rdwatch/backend/api/logout.php', {
+    const API_BASE = 'http://localhost/rdwatch/backend/api';
+
+    fetch(`${API_BASE}/logout.php`, {
         method: 'POST',
         credentials: 'include'
     })
     .then(res => res.json())
     .then(data => {
-        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('user'); // Limpiamos datos locales
         alert('Sesión cerrada correctamente');
-        window.location.href = '../frontend/public/index.html';
+        window.location.href = '/rdwatch/frontend/public/index.html'; // Ruta corregida
     })
     .catch(err => {
         console.error('Error al cerrar sesión:', err);
         sessionStorage.removeItem('user');
-        window.location.href = '../frontend/public/index.html';
+        window.location.href = '/rdwatch/frontend/public/index.html'; // Ruta corregida
     });
 }
 
-// 🔒 VERIFICACIÓN DE AUTENTICACIÓN
-(function checkAuth() {
-    const API_BASE = '../backend/api';
-    
-    // Verificar si hay sesión activa
-    fetch(`${API_BASE}/me.php`, {
-        method: 'GET',
-        credentials: 'include' // Enviar cookies
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (!data.ok || !data.user) {
-            // No hay sesión activa
-            alert('⚠️ Debes iniciar sesión para acceder al panel de administración');
-            window.location.href = '/frontend/public/index.html';
-            return;
-        }
-        
-        // Verificar que sea admin
-        const userData = sessionStorage.getItem('user');
-        if (userData) {
-            const user = JSON.parse(userData);
-            if (user.rol !== 'admin') {
-                alert('⚠️ No tienes permisos de administrador');
-                window.location.href = '/frontend/public/user.html';
-                return;
-            }
-            
-            // Usuario autenticado y es admin
-            console.log('✅ Usuario admin autenticado:', user.nombre);
-        } else {
-            // No hay datos en sessionStorage
-            alert('⚠️ Sesión inválida');
-            window.location.href = '/frontend/public/index.html';
-        }
-    })
-    .catch(err => {
-        console.error('Error verificando sesión:', err);
-        alert('❌ Error al verificar la sesión');
-        window.location.href = '/frontend/public/index.html';
-    });
-})();
-
+// ==========================================
+// 3. LÓGICA DEL DASHBOARD (CRUD)
+// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-  const API_BASE = '../backend/api';
+  const API_BASE = 'http://localhost/RD_WATCH/backend/api';
 
-  // Estado
+  // Estado local
   let productos = [];
-  let pedidos = [
-    { id: 1, cliente: "Juan Pérez", estado: "pendiente", total: 1200 },
-    { id: 2, cliente: "Ana Torres", estado: "pagado", total: 950 },
-    { id: 3, cliente: "Carlos Ruiz", estado: "enviado", total: 500 },
-    { id: 4, cliente: "Laura Gómez", estado: "entregado", total: 1500 },
-  ];
-  let clientes = [
-    { nombre: "Juan Pérez", email: "juan@mail.com", tel: "3001234567" },
-    { nombre: "Ana Torres", email: "ana@mail.com", tel: "3012345678" },
-  ];
+  let pedidos = [];
+  let clientes = [];
   let servicios = [];
   let marcas = [];
   let categorias = [];
   let subcategorias = [];
+
+
 
   /* ===== Navegación ===== */
   const links = document.querySelectorAll(".admin-link");
@@ -199,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =======================
-   *  PRODUCTOS
+   * PRODUCTOS
    * ======================= */
   const tbodyProductos = document.getElementById("tbodyProductos");
   const buscarProducto = document.getElementById("buscarProducto");
@@ -227,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (err) {
       console.error('Error cargando productos:', err);
-      alert('Error al cargar productos');
+      // alert('Error al cargar productos'); // Comentado para no spammear alertas si falla la primera carga
     }
   }
 
@@ -410,25 +367,133 @@ document.addEventListener("DOMContentLoaded", () => {
   window.eliminarProducto = eliminarProducto;
 
   /* =======================
-   *  PEDIDOS & CLIENTES
+   * PEDIDOS & CLIENTES
    * ======================= */
   const tbodyPedidos = document.getElementById("tbodyPedidos");
   const tbodyClientes = document.getElementById("tbodyClientes");
-  function drawPedidos() {
-    if (!tbodyPedidos) return;
-    tbodyPedidos.innerHTML = pedidos
-      .map((p) => `<tr><td>#${p.id}</td><td>${p.cliente}</td><td>${p.estado}</td><td>$${p.total}</td></tr>`)
-      .join("");
+
+async function cargarPedidos() {
+    try {
+      const res = await fetch(`${API_BASE}/pedidos.php`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      
+      if (data.ok) {
+        pedidos = data.pedidos.map(p => ({
+          id: p.id_orden,
+          cliente: p.cliente, // Viene del JOIN con tab_Usuarios
+          email: p.email_cliente,
+          estado: p.estado_orden,
+          total: parseFloat(p.total_orden),
+          fecha: p.fecha
+        }));
+        
+        drawPedidos();
+        renderDashboard(); // Actualizar contadores
+      }
+    } catch (err) {
+      console.error('Error cargando pedidos:', err);
+    }
   }
-  function drawClientes() {
-    if (!tbodyClientes) return;
-    tbodyClientes.innerHTML = clientes
-      .map((c) => `<tr><td>${c.nombre}</td><td>${c.email}</td><td>${c.tel}</td></tr>`)
+
+  function drawPedidos() {
+    const tbodyPedidos = document.getElementById("tbodyPedidos");
+    if (!tbodyPedidos) return;
+
+    if (pedidos.length === 0) {
+        tbodyPedidos.innerHTML = '<tr><td colspan="5" style="text-align:center">No hay pedidos registrados</td></tr>';
+        return;
+    }
+
+    // Función auxiliar para color de badge
+    const getBadgeClass = (estado) => {
+        const est = estado.toLowerCase();
+        if (est.includes('pendiente')) return 'pendiente'; // Amarillo (definido en tu CSS)
+        if (est.includes('pagado') || est.includes('completado')) return 'completado'; // Verde
+        if (est.includes('enviado')) return 'enviado'; // Azul
+        if (est.includes('cancelado')) return 'cancelado'; // Rojo
+        return 'inactive'; // Gris por defecto
+    };
+
+    tbodyPedidos.innerHTML = pedidos
+      .map((p) => `
+        <tr>
+          <td>#${p.id}</td>
+          <td>
+            ${p.cliente}<br>
+            <small style="color:#888">${p.email}</small>
+          </td>
+          <td>${p.fecha}</td>
+          <td>
+             <span class="badge ${getBadgeClass(p.estado)}">
+                ${p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
+             </span>
+          </td>
+          <td style="font-weight:bold">$${p.total.toFixed(2)}</td>
+        </tr>`)
       .join("");
   }
 
+  /* ==========================
+   * FUNCIÓN CARGAR CLIENTES 
+   * ========================== */
+  async function cargarClientes() {
+    try {
+      const res = await fetch(`${API_BASE}/clientes.php`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      
+      if (data.ok) {
+        // Mapeamos los datos de la BD a la estructura que usa la tabla
+        clientes = data.clientes.map(c => ({
+          id: c.id_usuario,
+          nombre: c.nom_usuario,
+          email: c.correo_usuario,
+          tel: c.num_telefono_usuario || 'N/A',
+          activo: c.activo,
+          fecha: c.fecha_registro
+        }));
+        
+        drawClientes();
+        renderDashboard(); // Para actualizar el contador del dashboard
+      }
+    } catch (err) {
+      console.error('Error cargando clientes:', err);
+    }
+  }
+
+ function drawClientes() {
+    const tbodyClientes = document.getElementById("tbodyClientes");
+    if (!tbodyClientes) return;
+
+    if (clientes.length === 0) {
+        tbodyClientes.innerHTML = '<tr><td colspan="4" style="text-align:center">No hay clientes registrados</td></tr>';
+        return;
+    }
+
+    tbodyClientes.innerHTML = clientes
+      .map((c) => `
+        <tr>
+          <td>
+            <strong>${c.nombre}</strong><br>
+            <small style="color:#888">ID: ${c.id}</small>
+          </td>
+          <td>${c.email}</td>
+          <td>${c.tel}</td>
+          <td>
+            <span class="badge ${c.activo ? 'active' : 'inactive'}">
+                ${c.activo ? 'Activo' : 'Inactivo'}
+            </span>
+          </td>
+        </tr>`)
+      .join("");
+  }
   /* =======================
-   *  SERVICIOS
+   * SERVICIOS
    * ======================= */
   const tbodyServicios = document.getElementById("tbodyServicios");
   const btnNuevoServicio = document.getElementById("btnNuevoServicio");
@@ -450,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (err) {
       console.error('Error cargando servicios:', err);
-      alert('Error al cargar servicios');
+      // alert('Error al cargar servicios');
     }
   }
 
@@ -563,7 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.eliminarServicio = eliminarServicio;
 
   /* =======================
-   *  MARCAS
+   * MARCAS
    * ======================= */
   const tbodyMarcas = document.getElementById("tbodyMarcas");
   const btnNuevaMarca = document.getElementById("btnNuevaMarca");
@@ -661,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const payload = {
         id_marca: Number(mId.value),
         nom_marca: mNombre.value.trim(),
-        estado_marca: mActiva.checked ? 1 : 0 // por compatibilidad con tus SP
+        estado_marca: mActiva.checked ? 1 : 0
       };
       const editing = formMarca.dataset.editing;
       try {
@@ -690,15 +755,15 @@ document.addEventListener("DOMContentLoaded", () => {
   window.eliminarMarca = eliminarMarca;
 
   /* =======================
-   *  CATEGORÍAS
+   * CATEGORÍAS
    * ======================= */
   const tbodyCategorias = document.getElementById("tbodyCategorias");
   const btnNuevaCategoria = document.getElementById("btnNuevaCategoria");
   const formCategoria = document.getElementById("formCategoria");
   const cId = document.getElementById("cId");
   const cNombre = document.getElementById("cNombre");
-  const cDescripcion = document.getElementById("cDescripcion"); // NUEVO
-  const cActiva = document.getElementById("cActiva"); // NUEVO
+  const cDescripcion = document.getElementById("cDescripcion");
+  const cActiva = document.getElementById("cActiva");
   const buscarCategoria = document.getElementById("buscarCategoria");
 
   async function cargarCategorias() {
@@ -823,10 +888,8 @@ document.addEventListener("DOMContentLoaded", () => {
   window.editarCategoria = editarCategoria;
   window.eliminarCategoria = eliminarCategoria;
 
-
-
 /* =======================
- *  SUBCATEGORÍAS 
+ * SUBCATEGORÍAS 
  * ======================= */
 const tbodySubcategorias = document.getElementById("tbodySubcategorias");
 const btnNuevaSubcategoria = document.getElementById("btnNuevaSubcategoria");
@@ -843,7 +906,6 @@ function getFiltroCat() {
 
 async function cargarSubcategorias(catId = null) {
   try {
-    // Cargar TODAS las subcategorías desde la BD
     const res = await fetch(`${API_BASE}/categorias.php?action=subcategoria`);
     const data = await res.json();
     
@@ -1007,8 +1069,6 @@ if (formSubcategoria) {
     
     const editing = formSubcategoria.dataset.editing;
     
-    console.log('📤 Enviando subcategoría:', payload); // Debug
-    
     try {
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(`${API_BASE}/categorias.php?action=subcategoria`, {
@@ -1018,7 +1078,6 @@ if (formSubcategoria) {
       });
       
       const data = await res.json();
-      console.log('📥 Respuesta servidor:', data); // Debug
       
       if (data.ok) {
         alert(data.msg || 'Subcategoría guardada correctamente');
@@ -1040,7 +1099,7 @@ window.editarSubcategoria = editarSubcategoria;
 window.eliminarSubcategoria = eliminarSubcategoria;
 
   /* =======================
-   *  CONFIG
+   * CONFIG
    * ======================= */
   const formConfigTienda = document.getElementById("formConfigTienda");
   if (formConfigTienda) {
@@ -1058,23 +1117,24 @@ window.eliminarSubcategoria = eliminarSubcategoria;
   }
 
   /* =======================
-   *  INIT
+   * INIT
    * ======================= */
-  async function init() {
+async function init() {
     await Promise.all([
       cargarProductos(),
       cargarServicios(),
       cargarMarcas(),
-      cargarCategorias()
+      cargarCategorias(),
+      cargarClientes(),
+      cargarPedidos() 
     ]);
+    
     await cargarSubcategorias();
-    drawPedidos();
-    drawClientes();
     renderDashboard();
 
-   const btnLogout = document.getElementById("btn-logout");
+    const btnLogout = document.getElementById("btn-logout");
     if (btnLogout) {
-      btnLogout.addEventListener("click", cerrarSesion); // ← USA LA FUNCIÓN cerrarSesion
+      btnLogout.addEventListener("click", cerrarSesion);
     }
   }
   init();

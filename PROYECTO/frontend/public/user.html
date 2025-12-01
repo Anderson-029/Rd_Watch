@@ -819,7 +819,7 @@
     
     if (!userData) {
         alert('⚠️ Debes iniciar sesión para acceder a tu panel');
-        window.location.href = 'index.html';
+        window.location.href = '/RD_WATCH/frontend/public/index.html'; // <-- RUTA ACTUALIZADA
         return;
     }
     
@@ -848,7 +848,7 @@
                 adminAlert.innerHTML = `
                     <strong>👑 Eres administrador</strong>
                     <br><br>
-                    <a href="/admin/admin.html" style="color: var(--white); text-decoration: underline;">
+                    <a href="/rdwatch/admin/admin.html" style="color: var(--white); text-decoration: underline;">
                         Ir al Panel de Administración →
                     </a>
                 `;
@@ -860,9 +860,29 @@
     } catch (err) {
         console.error('Error al verificar usuario:', err);
         alert('❌ Sesión inválida');
-        window.location.href = 'index.html';
+        window.location.href = '/RD_WATCH/frontend/public/index.html'; // <-- RUTA ACTUALIZADA
     }
 })();
+
+function cerrarSesion() {
+    if (!confirm('¿Deseas cerrar sesión?')) return;
+    
+    fetch('http://localhost/RD_WATCH/backend/api/logout.php', {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+        sessionStorage.removeItem('user');
+        alert('Sesión cerrada correctamente');
+        window.location.href = 'http://localhost/RD_WATCH/backend/api/logout.php'; // <-- RUTA ACTUALIZADA
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        sessionStorage.removeItem('user');
+        window.location.href = 'http://localhost/RD_WATCH/backend/api/logout.php'; // <-- RUTA ACTUALIZADA
+    });
+}
         const userId = 1;
 
         function showNotification(message, isError = false) {
