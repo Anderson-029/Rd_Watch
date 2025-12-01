@@ -21,4 +21,4 @@ try {
   echo json_encode(["ok" => false, "msg" => "Error de conexión: " . $e->getMessage()]);
   exit;
 }
-?>
+

@@ -46,14 +46,10 @@
             
             <aside class="sidebar">
                 <div class="filter-group">
-                    <h3><i class="fas fa-filter"></i> Categorías</h3>
-                    <ul class="filter-list" id="category-filters">
-                        <li><a href="#" data-filter="all" class="active">Todos los Productos</a></li>
-                        <li><a href="#" data-filter="Relojes">Relojes (Clásicos/Automáticos)</a></li>
-                        <li><a href="#" data-filter="Repuestos">Repuestos y Herramientas</a></li>
-                        <li><a href="#" data-filter="Accesorios">Accesorios (Correas/Estuches)</a></li>
-                    </ul>
-                </div>
+    <h3><i class="fas fa-filter"></i> Categorías</h3>
+    <ul class="filter-list" id="category-filters">
+        </ul>
+         </div>
                 
                 <div class="filter-group">
                     <h3><i class="fas fa-tag"></i> Marcas</h3>
@@ -67,10 +63,10 @@
                 </div>
                 
                 <div class="filter-group">
-                    <h3><i class="fas fa-dollar-sign"></i> Rango de Precio</h3>
-                    <input type="range" id="price-range" min="50" max="5000" value="5000" step="50" class="price-slider">
-                    <p>Precio Máximo: $<span id="price-value">5000</span></p>
-                </div>
+    <h3><i class="fas fa-dollar-sign"></i> Precio Máximo (COP)</h3>
+    <input type="range" id="price-range" min="0" max="999999999" value="999999999" step="1000000" class="price-slider">
+    <p>Hasta: <span id="price-value">$999.999.999</span></p>
+</div>
                 
                 <button class="button button-primary" onclick="applyFilters()">Aplicar Filtros</button>
             </aside>
@@ -89,10 +85,10 @@
                 <div class="product-grid" id="product-list">
                     </div>
                 
-                <div class="pagination">
-                    <button class="button button-outline"><i class="fas fa-arrow-left"></i> Anterior</button>
-                    <span>Página 1 de 3</span>
-                    <button class="button button-outline">Siguiente <i class="fas fa-arrow-right"></i></button>
+                <div class="pagination" id="pagination-controls">
+                    <button class="button button-outline" id="prev-page"><i class="fas fa-arrow-left"></i> Anterior</button>
+                      <span id="page-info">Página 1</span>
+                     <button class="button button-outline" id="next-page">Siguiente <i class="fas fa-arrow-right"></i></button>
                 </div>
             </main>
         </div>
@@ -321,6 +317,35 @@
         <i class="fas fa-shopping-cart"></i>
         <span class="cart-count" id="cart-item-count">0</span>
     </button>
+
+    <div id="product-detail-modal" class="modal">
+    <div class="modal-content product-modal-content">
+        <span class="close-modal close-product-modal">&times;</span>
+        <div class="product-modal-grid">
+            <div class="modal-img-wrapper">
+                <img id="modal-img" src="" alt="Producto">
+            </div>
+            <div class="modal-info-wrapper">
+                <span class="badge" id="modal-category">Categoría</span>
+                <h2 id="modal-title">Nombre del Reloj</h2>
+                <h3 id="modal-price" style="color: var(--primary-color); font-size: 1.8rem;">$0</h3>
+                <p id="modal-brand"><strong>Marca:</strong> <span>Rolex</span></p>
+                <div class="modal-description-box">
+                    <h4>Descripción:</h4>
+                    <p id="modal-desc">Detalles del producto...</p>
+                </div>
+                <p id="modal-stock" style="margin: 15px 0; color: #666;">Stock: 0</p>
+                
+                <div class="modal-actions">
+                    <input type="number" id="modal-qty" value="1" min="1" style="width: 60px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <button class="button button-primary" id="modal-add-btn">
+                        <i class="fas fa-cart-plus"></i> Agregar al Carrito
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
     <footer class="footer">
         <div class="container footer-top">

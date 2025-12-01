@@ -1,5 +1,15 @@
 <?php
 // backend/api/carrito.php
+
+// 1. Iniciar el "Buffer de Salida" (Atrapa cualquier espacio o error accidental)
+ob_start();
+
+include_once('../config.php');
+session_start();
+
+// 2. Limpiar el buffer antes de enviar cabeceras
+ob_clean(); 
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: http://localhost');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -11,15 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-include_once('../config.php');
-session_start();
-
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     switch($method) {
         case 'GET':
-            // Obtener carrito actual del usuario
             if (!isset($_SESSION['user_id'])) {
                 echo json_encode(['ok' => true, 'items' => []]);
                 exit;
@@ -48,7 +54,6 @@ try {
             break;
 
         case 'POST':
-            // Agregar producto al carrito
             if (!isset($_SESSION['user_id'])) {
                 http_response_code(401);
                 echo json_encode(['ok' => false, 'msg' => 'Debes iniciar sesión']);
@@ -65,7 +70,6 @@ try {
                 exit;
             }
             
-            // Llamar a la función PL/pgSQL fun_agregar_carrito
             $stmt = $pdo->prepare("SELECT fun_agregar_carrito(:user_id, :prod_id, :qty)");
             $stmt->execute([
                 ':user_id' => $_SESSION['user_id'],
@@ -74,33 +78,20 @@ try {
             ]);
             $result = $stmt->fetchColumn();
             
+            // Verificación flexible del resultado
             if (strpos($result, 'SUCCESS') !== false) {
                 echo json_encode(['ok' => true, 'msg' => 'Producto agregado al carrito']);
             } else {
-                http_response_code(400);
+                // A veces SQL devuelve un error, pero el HTTP es 200.
+                // Enviamos ok: false para que JS lo maneje.
                 echo json_encode(['ok' => false, 'msg' => $result]);
             }
             break;
 
         case 'PUT':
-            // Actualizar cantidad de un producto en el carrito
-            if (!isset($_SESSION['user_id'])) {
-                http_response_code(401);
-                echo json_encode(['ok' => false, 'msg' => 'Debes iniciar sesión']);
-                exit;
-            }
-            
+            if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }
             $data = json_decode(file_get_contents("php://input"), true);
-            $id_producto = intval($data['id_producto'] ?? 0);
-            $cantidad = intval($data['cantidad'] ?? 0);
             
-            if ($cantidad < 1) {
-                http_response_code(400);
-                echo json_encode(['ok' => false, 'msg' => 'Cantidad debe ser mayor a 0']);
-                exit;
-            }
-            
-            // Actualizar cantidad
             $stmt = $pdo->prepare("
                 UPDATE tab_Carrito_Detalle cd
                 SET cantidad = :qty
@@ -112,23 +103,16 @@ try {
             ");
             $stmt->execute([
                 ':user_id' => $_SESSION['user_id'],
-                ':prod_id' => $id_producto,
-                ':qty' => $cantidad
+                ':prod_id' => intval($data['id_producto']),
+                ':qty' => intval($data['cantidad'])
             ]);
             
             echo json_encode(['ok' => true, 'msg' => 'Cantidad actualizada']);
             break;
 
         case 'DELETE':
-            // Eliminar producto del carrito
-            if (!isset($_SESSION['user_id'])) {
-                http_response_code(401);
-                echo json_encode(['ok' => false, 'msg' => 'Debes iniciar sesión']);
-                exit;
-            }
-            
+            if (!isset($_SESSION['user_id'])) { http_response_code(401); exit; }
             $data = json_decode(file_get_contents("php://input"), true);
-            $id_producto = intval($data['id_producto'] ?? 0);
             
             $stmt = $pdo->prepare("
                 DELETE FROM tab_Carrito_Detalle cd
@@ -140,23 +124,17 @@ try {
             ");
             $stmt->execute([
                 ':user_id' => $_SESSION['user_id'],
-                ':prod_id' => $id_producto
+                ':prod_id' => intval($data['id_producto'])
             ]);
             
-            echo json_encode(['ok' => true, 'msg' => 'Producto eliminado del carrito']);
-            break;
-
-        default:
-            http_response_code(405);
-            echo json_encode(['ok' => false, 'msg' => 'Método no permitido']);
+            echo json_encode(['ok' => true, 'msg' => 'Eliminado']);
             break;
     }
-} catch (PDOException $e) {
+} catch (Exception $e) {
     http_response_code(500);
-    echo json_encode([
-        'ok' => false, 
-        'msg' => 'Error de base de datos',
-        'error' => $e->getMessage()
-    ]);
+    echo json_encode(['ok' => false, 'msg' => 'Error: ' . $e->getMessage()]);
 }
+
+// 3. Finalizar el buffer (asegura que no se envíe nada más)
+ob_end_flush();
 ?>
