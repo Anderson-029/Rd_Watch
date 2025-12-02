@@ -2481,3 +2481,31 @@ section {
         height: 250px;
     }
 }
+/* Centrar iconos de pago */
+.footer-payment {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.footer-payment i {
+    font-size: 2rem; /* Un poco más grandes para destacar */
+    margin: 0;
+}
+
+/* Ajustes para la barra inferior */
+.footer-bottom .container {
+    text-align: center;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.footer-links a {
+    margin: 0; /* Reseteamos margen anterior */
+}

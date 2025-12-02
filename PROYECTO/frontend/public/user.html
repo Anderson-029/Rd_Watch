@@ -432,6 +432,26 @@
             margin-right: var(--spacing-sm);
         }
 
+        /* Estilos para calificar con estrellas en el formulario */
+        .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 10px;
+         }
+.star-rating input { display: none; }
+.star-rating label {
+    font-size: 2rem;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: var(--primary-color);
+}
+
         .notification {
             position: fixed;
             top: 100px;
@@ -518,10 +538,16 @@
                 </div>
 
                 <div class="cards-grid">
-                    <div class="card">
-                        <div class="card-icon">
-                            <i class="fas fa-user-circle"></i>
-                        </div>
+                   <div class="card">
+    <div class="card-icon">
+        <i class="fas fa-star"></i>
+    </div>
+    <h3>Califícanos</h3>
+    <p>Cuéntanos tu experiencia y ayuda a otros clientes.</p>
+    <button class="button button-primary" onclick="showSection('resenaForm')">
+        <i class="fas fa-pencil-alt"></i> Escribir Reseña
+    </button>
+</div>
                         <h3>Mi Perfil</h3>
                         <p><strong>Nombre:</strong> <span id="perfilNombre">Anderson Gomez</span></p>
                         <p><strong>Email:</strong> <span id="perfilEmail">anderson@email.com</span></p>
@@ -810,6 +836,36 @@
                 </div>
             </section>
         </div>
+        <section id="resenaForm" class="form-section">
+    <h2><i class="fas fa-star"></i> Tu Opinión Cuenta</h2>
+    <form onsubmit="enviarResena(event)" class="form-grid">
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <label>Selecciona tu calificación</label>
+            <div class="star-rating">
+                <input type="radio" id="star5" name="rating" value="5" required/><label for="star5" title="Excelente">★</label>
+                <input type="radio" id="star4" name="rating" value="4"/><label for="star4" title="Bueno">★</label>
+                <input type="radio" id="star3" name="rating" value="3"/><label for="star3" title="Regular">★</label>
+                <input type="radio" id="star2" name="rating" value="2"/><label for="star2" title="Malo">★</label>
+                <input type="radio" id="star1" name="rating" value="1"/><label for="star1" title="Pésimo">★</label>
+            </div>
+        </div>
+
+        <div>
+            <label>Tu comentario</label>
+            <textarea id="resenaTexto" rows="4" placeholder="¿Qué te pareció nuestro servicio?" required></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="button button-secondary" onclick="showSection('inicio')">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button type="submit" class="button button-primary">
+                <i class="fas fa-paper-plane"></i> Publicar Reseña
+            </button>
+        </div>
+    </form>
+</section>
     </main>
 
     <script>
@@ -1081,6 +1137,55 @@ function cerrarSesion() {
                 e.target.value = e.target.value.replace(/\D/g, '');
             });
         }
+        async function enviarResena(e) {
+    e.preventDefault();
+    
+    // Obtener usuario de la sesión
+    const userData = sessionStorage.getItem('user');
+    if (!userData) {
+        showNotification('Error de sesión', true);
+        return;
+    }
+    const user = JSON.parse(userData);
+
+    // Obtener valor de estrellas
+    const ratingInputs = document.getElementsByName('rating');
+    let calificacion = 0;
+    for (const input of ratingInputs) {
+        if (input.checked) {
+            calificacion = input.value;
+            break;
+        }
+    }
+
+    const comentario = document.getElementById('resenaTexto').value;
+
+    const payload = {
+        id_usuario: user.id_usuario || 1, // Ajustar según tu objeto de sesión real
+        calificacion: parseInt(calificacion),
+        comentario: comentario
+    };
+
+    try {
+        const res = await fetch('http://localhost/RD_WATCH/backend/api/resenas.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            showNotification('✅ ' + data.msg);
+            e.target.reset();
+            setTimeout(() => showSection('inicio'), 1500);
+        } else {
+            showNotification('❌ ' + data.msg, true);
+        }
+    } catch (error) {
+        console.error(error);
+        showNotification('Error al conectar con el servidor', true);
+    }
+}
     </script>
 </body>
 </html>

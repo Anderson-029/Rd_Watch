@@ -548,3 +548,185 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadCart(); // Siempre cargar carrito
 });
+/**
+ * LÓGICA DEL FORMULARIO DE CONTACTO/SERVICIOS
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    const contactForm = document.getElementById('contactForm');
+    const serviceSelect = document.getElementById('contact-service');
+    const API_URL = 'http://localhost/RD_WATCH/backend/api'; // Ajusta si es necesario
+
+    // 1. Cargar servicios dinámicamente en el Select
+    if (serviceSelect) {
+        fetch(`${API_URL}/servicios.php`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok) {
+                    // Limpiar opciones excepto la primera (placeholder)
+                    serviceSelect.innerHTML = '<option value="" disabled selected>Selecciona un servicio</option>';
+                    
+                    data.servicios.forEach(serv => {
+                        const option = document.createElement('option');
+                        option.value = serv.id_servicio;
+                        // Mostramos Nombre y Precio
+                        option.textContent = `${serv.nom_servicio} - $${parseFloat(serv.precio_servicio).toLocaleString()}`;
+                        serviceSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(err => console.error('Error cargando servicios:', err));
+    }
+
+    // 2. Manejar el envío del formulario
+    if (contactForm) {
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Verificar si hay usuario logueado (en el frontend)
+            // Esto asume que guardas el user en sessionStorage al hacer login
+            const userSession = sessionStorage.getItem('user'); 
+            if (!userSession) {
+                showNotification('🔒 Debes iniciar sesión para agendar un servicio', true);
+                // Opcional: abrir modal de login
+                const authModal = document.getElementById('auth-modal');
+                if(authModal) {
+                    authModal.style.display = 'flex';
+                    setTimeout(() => authModal.classList.add('show'), 10);
+                }
+                return;
+            }
+
+            const submitBtn = contactForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Enviando...";
+
+            // Recopilar datos
+            const formData = {
+                nombre: document.getElementById('contact-name').value,
+                email: document.getElementById('contact-email').value,
+                telefono: document.getElementById('contact-phone').value,
+                id_servicio: serviceSelect.value,
+                mensaje: document.getElementById('contact-message').value
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/citas.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Importante para enviar la cookie de sesión PHP
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await res.json();
+
+                if (result.ok) {
+                    showNotification('✅ ' + result.msg);
+                    contactForm.reset();
+                } else {
+                    showNotification('❌ ' + result.msg, true);
+                }
+            } catch (error) {
+                console.error(error);
+                showNotification('Error de conexión', true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+            }
+        });
+    }
+});
+
+// 3. Lógica para botones "Solicitar" en las tarjetas de servicios
+    const requestButtons = document.querySelectorAll('.btn-request-service');
+    
+    if (requestButtons.length > 0) {
+        requestButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Permitimos el comportamiento por defecto (el scroll al ancla #contact-section)
+                
+                const searchTerm = btn.getAttribute('data-search').toLowerCase();
+                const select = document.getElementById('contact-service');
+
+                // Esperamos un momento pequeño para asegurar que el scroll inicie
+                setTimeout(() => {
+                    if (select && select.options.length > 1) {
+                        // Recorremos las opciones del select (que vienen de la BD)
+                        for (let i = 0; i < select.options.length; i++) {
+                            const optionText = select.options[i].text.toLowerCase();
+                            
+                            // Si el texto de la opción contiene la palabra clave (ej: "Reparación")
+                            if (optionText.includes(searchTerm)) {
+                                select.selectedIndex = i; // Lo seleccionamos
+                                
+                                // Efecto visual para destacar el campo
+                                select.style.borderColor = 'var(--primary-color)';
+                                select.style.boxShadow = '0 0 10px rgba(184, 134, 11, 0.3)';
+                                setTimeout(() => {
+                                    select.style.borderColor = '';
+                                    select.style.boxShadow = '';
+                                }, 1500);
+                                break;
+                            }
+                        }
+                    }
+                }, 100); // Pequeño delay
+            });
+        });
+    }
+
+// Función para cargar reseñas en el home
+async function loadTestimonials() {
+    const sliderContainer = document.querySelector('.reviews-slider');
+    if (!sliderContainer) return;
+
+    try {
+        const res = await fetch('http://localhost/RD_WATCH/backend/api/resenas.php');
+        const data = await res.json();
+
+        if (data.ok && data.resenas.length > 0) {
+            // Limpiamos los testimonios estáticos (hardcoded)
+            sliderContainer.innerHTML = '';
+
+            data.resenas.forEach(review => {
+                // Generar estrellas HTML
+                let starsHtml = '';
+                for (let i = 0; i < 5; i++) {
+                    if (i < review.calificacion) {
+                        starsHtml += '<i class="fas fa-star"></i>'; // Llena
+                    } else {
+                        starsHtml += '<i class="far fa-star"></i>'; // Vacía
+                    }
+                }
+
+                // Crear tarjeta HTML
+                const cardHtml = `
+                    <div class="review-card">
+                        <div class="review-rating" style="color: var(--warning-color);">
+                            ${starsHtml}
+                        </div>
+                        <p class="review-text">"${review.comentario}"</p>
+                        <div class="reviewer-info">
+                            <div class="reviewer-avatar" style="background:#333; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold;">
+                                ${review.nom_usuario.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="reviewer-details">
+                                <p class="reviewer-name">${review.nom_usuario}</p>
+                                <p class="reviewer-role">Cliente Verificado</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                sliderContainer.innerHTML += cardHtml;
+            });
+        }
+    } catch (error) {
+        console.error('Error cargando testimonios:', error);
+    }
+}
+
+// Asegúrate de llamar a esta función cuando cargue la página
+document.addEventListener('DOMContentLoaded', () => {
+    // ... tu código existente ...
+    loadTestimonials(); 
+});

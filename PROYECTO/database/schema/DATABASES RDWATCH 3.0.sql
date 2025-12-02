@@ -634,7 +634,7 @@ CREATE TABLE IF NOT EXISTS tab_Opiniones
 (
     id_opinion              INT NOT NULL, -- Identificador único de la opinión
     id_usuario              BIGINT NOT NULL, -- Identificador del usuario que realizó la opinión
-    id_producto             BIGINT NOT NULL, -- Identificador del producto sobre el que se realizó la opinión
+    id_producto             BIGINT  NULL, -- Identificador del producto sobre el que se realizó la opinión
     calificacion            SMALLINT NOT NULL, -- Calificación del producto (1 a 5 estrellas)
     comentario              TEXT NOT NULL, -- Comentario adicional sobre el producto
     fecha_opinion           TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora en que se realizó la opinión
