@@ -730,3 +730,290 @@ document.addEventListener('DOMContentLoaded', () => {
     // ... tu código existente ...
     loadTestimonials(); 
 });
+// =========================================================
+// LÓGICA DE AUTENTICACIÓN (LOGIN Y REGISTRO)
+// =========================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* =========================================================
+       1. MANEJO DEL LOGIN (TU CÓDIGO ORIGINAL)
+       ========================================================= */
+    const loginForm = document.getElementById('loginForm');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); // <--- ESTO ES VITAL: Evita que la página se recargue
+
+            const emailInput = document.getElementById('login-email');
+            const passwordInput = document.getElementById('login-password');
+            const btnLogin = loginForm.querySelector('.btn-login');
+            const btnText = btnLogin.querySelector('.btn-text');
+            const btnLoader = btnLogin.querySelector('.btn-loader');
+
+            // UI Loading
+            if(btnText) btnText.style.display = 'none';
+            if(btnLoader) btnLoader.style.display = 'inline-block';
+            btnLogin.disabled = true;
+
+            try {
+                // Ajusta esta ruta si tu carpeta backend está en otro lugar
+                const API_URL = 'http://localhost/RD_WATCH/backend/api/login.php'; 
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Importante para mantener la sesión PHP
+                    body: JSON.stringify({
+                        email: emailInput.value,
+                        password: passwordInput.value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    // Guardar datos básicos en sessionStorage para el frontend
+                    sessionStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    showNotification('✅ Bienvenido ' + data.user.nombre);
+                    
+                    // REDIRECCIÓN BASADA EN LA RESPUESTA DEL PHP
+                    setTimeout(() => {
+                        window.location.href = data.redirect; 
+                    }, 1000);
+                } else {
+                    showNotification('❌ ' + (data.msg || 'Error al iniciar sesión'), true);
+                }
+
+            } catch (error) {
+                console.error('Error login:', error);
+                showNotification('Error de conexión con el servidor', true);
+            } finally {
+                // Restaurar botón
+                if(btnText) btnText.style.display = 'inline-block';
+                if(btnLoader) btnLoader.style.display = 'none';
+                btnLogin.disabled = false;
+            }
+        });
+    }
+
+    /* =========================================================
+       2. MANEJO DEL REGISTRO (NUEVO CÓDIGO)
+       ========================================================= */
+    const signupForm = document.getElementById('signupForm');
+    
+    if (signupForm) {
+        signupForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Referencias
+            const nameInput = document.getElementById('signup-name');
+            const emailInput = document.getElementById('signup-email');
+            const phoneInput = document.getElementById('signup-phone');
+            const passInput = document.getElementById('signup-password');
+            const confirmInput = document.getElementById('signup-password-confirm');
+            
+            // Validar coincidencia de contraseñas
+            if (passInput.value !== confirmInput.value) {
+                showNotification('❌ Las contraseñas no coinciden', true);
+                return;
+            }
+
+            // UI Loading
+            const btnSignup = signupForm.querySelector('.btn-signup');
+            const btnText = btnSignup.querySelector('.btn-text');
+            const btnLoader = btnSignup.querySelector('.btn-loader');
+
+            if(btnText) btnText.textContent = ""; // Ocultar texto temporalmente
+            if(btnLoader) btnLoader.style.display = 'inline-block';
+            btnSignup.disabled = true;
+
+            try {
+                // Usamos el archivo que conecta con tu FUN_REGISTRAR_USUARIO
+                const API_URL = 'http://localhost/RD_WATCH/backend/api/signup.php';
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre: nameInput.value,
+                        email: emailInput.value,
+                        telefono: phoneInput.value,
+                        password: passInput.value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    showNotification('✅ Registro exitoso. Por favor inicia sesión.');
+                    signupForm.reset();
+                    // Simular clic en "Inicia Sesión" para cambiar la vista
+                    document.querySelector('.switcher-login').click();
+                } else {
+                    showNotification('❌ ' + (data.msg || 'Error al registrarse'), true);
+                }
+            } catch (error) {
+                console.error('Error signup:', error);
+                showNotification('Error de conexión al intentar registrarse', true);
+            } finally {
+                // Restaurar botón
+                if(btnText) btnText.textContent = "CREAR CUENTA";
+                if(btnLoader) btnLoader.style.display = 'none';
+                btnSignup.disabled = false;
+            }
+        });
+    }
+
+    /* =========================================================
+       3. FUNCIONALIDADES UI (OJO, TABS, MEDIDOR)
+       ========================================================= */
+
+    // A. CAMBIO DE PESTAÑAS (LOGIN <-> REGISTRO)
+    const switchers = document.querySelectorAll('.switcher');
+    switchers.forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.form-wrapper').forEach(fw => fw.classList.remove('is-active'));
+            this.parentElement.classList.add('is-active');
+        });
+    });
+
+    // B. MOSTRAR/OCULTAR CONTRASEÑA (EL OJO)
+    const togglePassBtns = document.querySelectorAll('.toggle-password');
+    togglePassBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault(); // Evitar submit
+            const input = btn.previousElementSibling; // El input está antes del botón
+            const icon = btn.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    });
+
+    // C. MEDIDOR DE FUERZA DE CONTRASEÑA
+    const passInputSignup = document.getElementById('signup-password');
+    const strengthText = document.getElementById('strength-text');
+    const bars = document.querySelectorAll('.strength-bar');
+
+    if (passInputSignup && strengthText) {
+        passInputSignup.addEventListener('input', function() {
+            const val = this.value;
+            let score = 0;
+            
+            if (val.length >= 6) score++;         // Longitud mínima
+            if (val.length >= 10) score++;        // Longitud ideal
+            if (/[A-Z]/.test(val)) score++;       // Mayúsculas
+            if (/[0-9]/.test(val)) score++;       // Números
+            if (/[^A-Za-z0-9]/.test(val)) score++;// Símbolos
+
+            // Limitar a 4 niveles
+            if(score > 4) score = 4;
+
+            // Actualizar Texto
+            const labels = ['Muy Débil', 'Débil', 'Media', 'Fuerte', 'Muy Segura'];
+            strengthText.textContent = labels[score];
+
+            // Colorear Barras
+            bars.forEach((bar, idx) => {
+                if (idx < score) {
+                    if (score <= 1) bar.style.backgroundColor = '#e74c3c'; // Rojo
+                    else if (score === 2) bar.style.backgroundColor = '#f1c40f'; // Amarillo
+                    else if (score === 3) bar.style.backgroundColor = '#3498db'; // Azul
+                    else bar.style.backgroundColor = '#2ecc71'; // Verde
+                } else {
+                    bar.style.backgroundColor = '#ddd'; // Gris
+                }
+            });
+        });
+    }
+
+    // D. ABRIR/CERRAR MODAL
+    const authModal = document.getElementById('auth-modal');
+    const openBtns = document.querySelectorAll('#login-btn, .btn-open-login');
+    const closeBtn = document.querySelector('.close-modal');
+
+    if(authModal) {
+        openBtns.forEach(btn => btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            authModal.style.display = 'flex';
+            setTimeout(() => authModal.classList.add('show'), 10);
+        }));
+
+        if(closeBtn) closeBtn.addEventListener('click', () => {
+            authModal.classList.remove('show');
+            setTimeout(() => authModal.style.display = 'none', 300);
+        });
+
+        authModal.addEventListener('click', (e) => {
+            if(e.target === authModal) {
+                authModal.classList.remove('show');
+                setTimeout(() => authModal.style.display = 'none', 300);
+            }
+        });
+    }
+
+    // Helper para notificaciones (si no lo tenías ya)
+    function showNotification(msg, isError = false) {
+        const notif = document.getElementById('notification');
+        if(!notif) return;
+        notif.textContent = msg;
+        notif.className = isError ? 'notification error' : 'notification success';
+        notif.classList.add('show');
+        setTimeout(() => notif.classList.remove('show'), 4000);
+    }
+
+});
+
+// === LÓGICA DE INTERFAZ (SWITCHER LOGIN/SIGNUP) ===
+    // Esto hace que el botón "Regístrate" cambie el formulario visualmente
+    const switchers = document.querySelectorAll('.switcher');
+    
+    switchers.forEach(item => {
+        item.addEventListener('click', function() {
+            // Remover la clase activa de todos los padres
+            switchers.forEach(item => item.parentElement.classList.remove('is-active'));
+            // Agregar la clase activa al padre del botón clickeado
+            this.parentElement.classList.add('is-active');
+        });
+    });
+
+    // === MODAL (ABRIR/CERRAR) ===
+    const authModal = document.getElementById('auth-modal');
+    const openLoginBtns = document.querySelectorAll('#login-btn, .btn-open-login'); // Selecciona todos los botones de login
+    const closeModal = document.querySelector('.close-modal');
+
+    if (authModal) {
+        // Abrir modal
+        openLoginBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                authModal.style.display = 'flex';
+                setTimeout(() => authModal.classList.add('show'), 10);
+            });
+        });
+
+        // Cerrar modal con la X
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                authModal.classList.remove('show');
+                setTimeout(() => authModal.style.display = 'none', 300);
+            });
+        }
+
+        // Cerrar al dar click fuera del modal
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) {
+                authModal.classList.remove('show');
+                setTimeout(() => authModal.style.display = 'none', 300);
+            }
+        });
+    }

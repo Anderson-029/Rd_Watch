@@ -1,5 +1,11 @@
 <?php
 // backend/api/citas.php
+
+// 1. Evitar que PHP imprima errores HTML visibles que rompen el JSON
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -8,50 +14,52 @@ header('Access-Control-Allow-Headers: Content-Type');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit();
 
 include_once('../config.php');
-session_start();
+
+$data = json_decode(file_get_contents("php://input"), true);
+
+// Mapeo de datos recibidos del JS
+$id_usuario  = $data['p_id_usuario'] ?? null;
+$id_servicio = $data['p_id_servicio'] ?? null;
+$fecha       = $data['p_fecha_pref'] ?? date('Y-m-d');
+$notas       = $data['p_notas'] ?? '';
+$prioridad   = $data['p_prioridad'] ?? 'normal';
+
+if (!$id_usuario || !$id_servicio) {
+    echo json_encode(['ok' => false, 'msg' => 'Faltan datos de usuario o servicio']);
+    exit;
+}
 
 try {
-    // 1. Verificar si el usuario está logueado
-    // Nota: El formulario pide nombre/email, pero la BD exige un ID de usuario registrado.
-    if (!isset($_SESSION['user_id'])) {
-        http_response_code(401);
-        echo json_encode(['ok' => false, 'msg' => 'Debes iniciar sesión para agendar un servicio.']);
-        exit;
-    }
-
-    $id_usuario = $_SESSION['user_id'];
-    $data = json_decode(file_get_contents("php://input"), true);
-
-    // 2. Validaciones básicas
-    if (empty($data['id_servicio'])) {
-        throw new Exception("Por favor selecciona un servicio.");
-    }
+    // LLAMADA A TU FUNCIÓN ALMACENADA (PL/pgSQL)
+    // fun_registrar_peticion_servicio(id_usr, id_srv, fecha, notas, prioridad)
     
-    $id_servicio = intval($data['id_servicio']);
-    $notas = isset($data['mensaje']) ? trim($data['mensaje']) : '';
-    // Usamos la fecha de hoy por defecto si no viene en el formulario, 
-    // o puedes agregar un campo de fecha al HTML.
-    $fecha = date('Y-m-d'); 
-
-    // 3. Llamar a la función SQL
-    $stmt = $pdo->prepare("SELECT fun_registrar_peticion_servicio(:uid, :sid, :fecha, :notas, 'normal')");
+    $sql = "SELECT fun_registrar_peticion_servicio(:uid, :sid, :fecha, :notas, :prio)";
+    
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        ':uid' => $id_usuario,
-        ':sid' => $id_servicio,
+        ':uid'   => $id_usuario,
+        ':sid'   => $id_servicio,
         ':fecha' => $fecha,
-        ':notas' => $notas
+        ':notas' => $notas,
+        ':prio'  => $prioridad
     ]);
 
+    // Obtener el resultado (el ID de la reserva creada)
     $id_reserva = $stmt->fetchColumn();
 
     if ($id_reserva > 0) {
-        echo json_encode(['ok' => true, 'msg' => 'Solicitud enviada correctamente. ID: ' . $id_reserva]);
+        echo json_encode([
+            'ok' => true, 
+            'msg' => 'Solicitud enviada exitosamente. Ticket #' . $id_reserva
+        ]);
     } else {
-        throw new Exception("Error al registrar la solicitud en base de datos.");
+        echo json_encode(['ok' => false, 'msg' => 'No se pudo registrar la solicitud.']);
     }
 
+} catch (PDOException $e) {
+    // Enviar el error como JSON limpio
+    echo json_encode(['ok' => false, 'msg' => 'Error BD: ' . $e->getMessage()]);
 } catch (Exception $e) {
-    http_response_code(400);
-    echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+    echo json_encode(['ok' => false, 'msg' => 'Error Servidor: ' . $e->getMessage()]);
 }
 ?>

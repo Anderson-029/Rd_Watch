@@ -48,6 +48,15 @@ try {
             echo json_encode(['ok' => false, 'msg' => 'Tipo no válido']);
             break;
     }
+        case 'metodos_pago':
+            $stmt = $pdo->query("
+                 SELECT id_metodo_pago, nombre_metodo, descripcion 
+                 FROM tab_Metodos_Pago 
+                ORDER BY nombre_metodo
+    ");
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode(['ok' => true, 'metodos_pago' => $data]);
+    break;
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['ok' => false, 'msg' => 'Error del servidor: ' . $e->getMessage()]);
